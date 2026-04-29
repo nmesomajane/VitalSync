@@ -1,11 +1,16 @@
 import express from "express";
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import authRoutes from './routes/google.js'
+import googleRoutes from './routes/google.js'
 import passport from './auth/google.js'
 import session from "express-session";
 import {connectDB,sequelize} from "./database/connection.js"
 import User from './models/user.js'
+import authRoutes from './routes/auth.js'
+import AppError from "./utilis/appError.js";
+import errorHandler from "./middleware/errorHandler.js";
+
+
 
 
 
@@ -18,17 +23,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-// wrap everything in an async function so we can
-// await the database before starting the server
-// this guarantees the DB is ready before any request hits
+
 
   await connectDB();
-  // wait for PostgreSQL connection to succeed
+
 
   await sequelize.sync({ alter: true });
-  // NOW sync models — sequelize exists, User model exists
-  // no circular issue because the order is controlled here
-  // alter: true updates tables if your models change
+  
   console.log("Database tables synced");
 
   // Middleware
@@ -47,7 +48,12 @@ const startServer = async () => {
   app.use(passport.session());
 
   // Routes
-  app.use("/api/auth", authRoutes);
+  app.use("/api/v1/auth", googleRoutes);
+  app.use("/api/v1/auth", authRoutes);
+
+  // Error handling middleware
+  app.use(errorHandler);
+
 
   app.get("/", (req, res) => {
     res.send("VitalSync API is running");
