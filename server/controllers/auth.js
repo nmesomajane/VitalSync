@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
 
-import {sequelize,connectDB} from '../database/connection.js';
+
 import authService from '../services/authServices.js';
 
 import asyncHandler from '../utilis/asyncHandler.js';

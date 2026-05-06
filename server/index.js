@@ -7,6 +7,7 @@ import session from "express-session";
 import {connectDB,sequelize} from "./database/connection.js"
 import User from './models/user.js'
 import authRoutes from './routes/auth.js'
+import vitalsRoutes from './routes/vitals.js'
 import AppError from "./utilis/appError.js";
 import errorHandler from "./middleware/errorHandler.js";
 
@@ -50,7 +51,7 @@ const startServer = async () => {
   // Routes
   app.use("/api/v1/auth", googleRoutes);
   app.use("/api/v1/auth", authRoutes);
-
+  app.use("/api/v1/vitals", vitalsRoutes);
   // Error handling middleware
   app.use(errorHandler);
 
