@@ -1,5 +1,6 @@
 import vitalsRepository from "../repository/vitalRepository.js";
 import AppError from "../utilis/appError.js";
+import { emitVitalsUpdate, emitAlert } from "../socket/socketManager.js";
 
 //  Define thresholds 
 
@@ -140,50 +141,47 @@ class VitalsService {
   // STEP 3E — Record a vital reading 
   
 
-  async recordVital({ userId, heartRate, spO2, bodyTemperature, respiratoryRate, roomHumidity, ecgData }) {
+ async recordVital({ userId, heartRate, spO2, bodyTemperature,
+                    respiratoryRate, roomHumidity, ecgData, io }) {
+ 
 
-    
-    const readings = {
-      heartRate,
-      spO2,
-      bodyTemperature,
-      respiratoryRate,
-      roomHumidity,
-    };
+  const readings = { heartRate, spO2, bodyTemperature, respiratoryRate, roomHumidity };
+
+  const anomalies = this.checkThresholds(readings);
+  const hasAnomaly = Object.keys(anomalies).length > 0;
+  const healthScore = this.calculateHealthScore(readings);
+
+  const vital = await vitalsRepository.create({
+    userId, heartRate, spO2, bodyTemperature,
+    respiratoryRate, roomHumidity, ecgData,
+    hasAnomaly,
+    anomalyDetails: hasAnomaly ? anomalies : null,
+  });
+
+
+  const payload = {
+    vital,
+    healthScore,
+    hasAnomaly,
+    anomalies: hasAnomaly ? anomalies : null,
+    timestamp: new Date(),
+  };
+
+  emitVitalsUpdate(io, userId, payload);
 
   
-    const anomalies = this.checkThresholds(readings);
-   
 
-    const hasAnomaly = Object.keys(anomalies).length > 0;
-   
-
-   
-    const healthScore = this.calculateHealthScore(readings);
-
-   
-    const vital = await vitalsRepository.create({
-      userId,
-      heartRate,
-      spO2,
-      bodyTemperature,
-      respiratoryRate,
-      roomHumidity,
-      ecgData,
-      hasAnomaly,
-      anomalyDetails: hasAnomaly ? anomalies : null,
-      
+  if (hasAnomaly) {
+    emitAlert(io, userId, {
+      message: "Anomaly detected in your vitals",
+      anomalies,
+      timestamp: new Date(),
     });
-
-    
-    return {
-      vital,
-      healthScore,
-      hasAnomaly,
-      anomalies: hasAnomaly ? anomalies : null,
-     
-    };
+  
   }
+
+  return payload;
+}
 
   //  STEP 3F — Get latest vitals 
 

@@ -1,4 +1,6 @@
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import googleRoutes from './routes/google.js'
@@ -10,30 +12,37 @@ import authRoutes from './routes/auth.js'
 import vitalsRoutes from './routes/vitals.js'
 import AppError from "./utilis/appError.js";
 import errorHandler from "./middleware/errorHandler.js";
-
-
-
-
-
-
+import { setupSocketIO } from "./socket/socketManager.js";
 import dotenv from "dotenv";
+
+
+
 dotenv.config();
 
-// Create Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const httpServer = createServer(app);
+
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "3000",
+    // which clients are allowed to connect via WebSocket or replace with the actual production url
+   
+    methods: ["GET", "POST"],
+  },
+});
+
+app.set("io", io);
+
+
+setupSocketIO(io);
+
 
 const startServer = async () => {
-
-
   await connectDB();
-
-
   await sequelize.sync({ alter: true });
-  
-  console.log("Database tables synced");
+  console.log("Database synced");
 
-  // Middleware
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -48,23 +57,17 @@ const startServer = async () => {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Routes
-  app.use("/api/v1/auth", googleRoutes);
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/vitals", vitalsRoutes);
-  // Error handling middleware
-  app.use(errorHandler);
-
 
   app.get("/", (req, res) => {
     res.send("VitalSync API is running");
   });
 
-  app.listen(PORT, () => {
-    console.log(`VitalSync server running on port ${PORT}`);
+  httpServer.listen(process.env.PORT || 3000, () => {
+    console.log(`VitalSync server running on port ${process.env.PORT || 3000}`);
   });
+
 };
 
 startServer();
-
-export default app;

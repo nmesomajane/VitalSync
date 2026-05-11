@@ -17,13 +17,15 @@ export const authenticate = asyncHandler(async (req, res, next) => {
 
   
   const decoded = verifyToken(token);
-  
+  console.log("Decoded token:", decoded); 
   if (!decoded) {
     throw new AppError('Invalid or expired token. Please log in again', 401);
   }
 
   
-  const user = await UserRepository.findById(decoded.userId);
+  const user = await UserRepository.findById(decoded.id);
+  console.log("Looking for user with id:", decoded.id);
+  console.log("User found:", user);  
   
   if (!user) {
     throw new AppError('The user belonging to this token no longer exists', 401);
