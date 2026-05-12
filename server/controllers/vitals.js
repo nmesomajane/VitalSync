@@ -49,3 +49,16 @@ export const getLatestVitals = asyncHandler(async (req, res) => {
     data: vitals,
   });
 });
+
+export const getVitalsHistory = asyncHandler(async (req, res) => {
+  const { id: userId } = req.user;
+  const days = parseInt(req.query.days) || 30;
+ 
+
+  const history = await vitalsService.getVitalsHistory(userId, days);
+
+  res.status(200).json({
+    success: true,
+    data: history,
+  });
+});

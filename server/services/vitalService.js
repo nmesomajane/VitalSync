@@ -260,6 +260,44 @@ class VitalsService {
     return averages;
   }
 
+  async getVitalsHistory(userId, days = 30) {
+  const [dailyAverages, rawReadings] = await Promise.all([
+    vitalsRepository.findDailyAverages(userId, days),
+    vitalsRepository.findRawReadings(userId, 7),
+  
+  ]);
+
+  if (!dailyAverages.length) {
+    return {
+      dailyAverages: [],
+      rawReadings: [],
+      summary: null,
+    };
+  }
+
+  // compute overall summary from the daily averages
+  const summary = {
+    avgHeartRate: this.average(dailyAverages, "avgHeartRate"),
+    avgSpO2: this.average(dailyAverages, "avgSpO2"),
+    avgBodyTemperature: this.average(dailyAverages, "avgBodyTemperature"),
+    avgRespiratoryRate: this.average(dailyAverages, "avgRespiratoryRate"),
+    avgRoomHumidity: this.average(dailyAverages, "avgRoomHumidity"),
+    totalReadings: dailyAverages.reduce((sum, d) => sum + d.totalReadings, 0),
+    totalAnomalies: dailyAverages.reduce((sum, d) => sum + d.anomalyCount, 0),
+    periodDays: days,
+  };
+
+  return { dailyAverages, rawReadings, summary };
+}
+
+//  averages one field across all daily rows
+average(rows, field) {
+  const valid = rows.filter(r => r[field] !== null);
+  if (!valid.length) return null;
+  const sum = valid.reduce((acc, r) => acc + parseFloat(r[field]), 0);
+  return parseFloat((sum / valid.length).toFixed(1));
+}
+
 }
 
 export default new VitalsService();
