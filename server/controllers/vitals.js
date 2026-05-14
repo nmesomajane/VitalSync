@@ -62,3 +62,21 @@ export const getVitalsHistory = asyncHandler(async (req, res) => {
     data: history,
   });
 });
+
+export const getLatestECG = asyncHandler(async (req, res) => {
+  const { id: userId } = req.user;
+
+  const ecg = await vitalsService.getLatestECG(userId);
+
+  if (!ecg) {
+    return res.status(404).json({
+      success: false,
+      message: "No ECG data recorded yet. Ensure the hardware is connected.",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: ecg,
+  });
+});
