@@ -10,7 +10,10 @@ import {connectDB,sequelize} from "./database/connection.js"
 import User from './models/user.js'
 import authRoutes from './routes/auth.js'
 import vitalsRoutes from './routes/vitals.js'
+import alertRoutes from "./routes/alerts.js";
 import AppError from "./utilis/appError.js";
+import Alert from "./models/alert.js";
+import Threshold from "./models/threshold.js";
 import errorHandler from "./middleware/errorHandler.js";
 import { setupSocketIO } from "./socket/socketManager.js";
 import dotenv from "dotenv";
@@ -59,7 +62,7 @@ const startServer = async () => {
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/vitals", vitalsRoutes);
-
+  app.use("/api/v1/alerts", alertRoutes);
   app.get("/", (req, res) => {
     res.send("VitalSync API is running");
   });

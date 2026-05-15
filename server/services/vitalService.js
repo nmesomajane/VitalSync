@@ -1,6 +1,7 @@
 import vitalsRepository from "../repository/vitalRepository.js";
 import AppError from "../utilis/appError.js";
 import { emitVitalsUpdate, emitAlert } from "../socket/socketManager.js";
+import alertService from "./alertService.js";
 
 //  Define thresholds
 
@@ -152,6 +153,26 @@ class VitalsService {
       hasAnomaly,
       anomalyDetails: hasAnomaly ? anomalies : null,
     });
+    const alerts = await alertService.checkAndCreateAlerts({
+      userId,
+      readings: {
+        heartRate,
+        spO2,
+        bodyTemperature,
+        respiratoryRate,
+        roomHumidity,
+      },
+      io,
+      
+    });
+
+    return {
+      vital,
+      healthScore,
+      hasAnomaly: alerts.length > 0,
+      alerts,
+     
+    };
 
     const payload = {
       vital,
@@ -285,44 +306,39 @@ class VitalsService {
   }
 
   async getLatestECG(userId) {
-  const reading = await vitalsRepository.findLatestECG(userId);
+    const reading = await vitalsRepository.findLatestECG(userId);
 
-  if (!reading || !reading.ecgData) return null;
+    if (!reading || !reading.ecgData) return null;
 
-  
-  const analysis = this.analyseECG(reading.ecgData);
+    const analysis = this.analyseECG(reading.ecgData);
 
- 
-  const formattedWaveform = reading.ecgData.map((value, index) => ({
-    x: index,
-  
-    y: value,
-   
-  }));
+    const formattedWaveform = reading.ecgData.map((value, index) => ({
+      x: index,
 
-  return {
-    waveform: formattedWaveform,
-    
-    rawData: reading.ecgData,
-   
+      y: value,
+    }));
 
-    analysis: {
-      rhythmStatus: analysis.status,
-    
-      derivedHeartRate: analysis.derivedHeartRate,
-     
-      hrv: analysis.hrv,
-      peakCount: analysis.peakCount,
-      rrIntervals: analysis.rrIntervals,
-      message: analysis.message,
-   
-    },
+    return {
+      waveform: formattedWaveform,
 
-    recordedAt: reading.createdAt,
-    hasAnomaly: reading.hasAnomaly,
-    anomalyDetails: reading.anomalyDetails,
-  };
-}
+      rawData: reading.ecgData,
+
+      analysis: {
+        rhythmStatus: analysis.status,
+
+        derivedHeartRate: analysis.derivedHeartRate,
+
+        hrv: analysis.hrv,
+        peakCount: analysis.peakCount,
+        rrIntervals: analysis.rrIntervals,
+        message: analysis.message,
+      },
+
+      recordedAt: reading.createdAt,
+      hasAnomaly: reading.hasAnomaly,
+      anomalyDetails: reading.anomalyDetails,
+    };
+  }
 }
 
 export default new VitalsService();
