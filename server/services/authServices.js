@@ -44,14 +44,14 @@ class AuthService {
 }
 
   // Login existing user
-  async login(email, password) {1
+  async login({ email, password }) {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
       throw new AppError("Invalid email or password", 401);
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw new AppError("Invalid email or password", 401);
