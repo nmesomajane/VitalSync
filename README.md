@@ -14,22 +14,22 @@ A patient wears the VitalSync hardware device. Every 2 seconds, it captures thei
 
 ## Features That Matter
 
-** Live Streaming**
+**Live Streaming**
 Vitals appear on the app the moment the sensor reads them — powered by WebSocket, not polling. No refresh button. No waiting.
  
-** Intelligent Alerts**
+**Intelligent Alerts**
 Every reading is checked against medical thresholds.The threshold aren't fixed , the can be updated. Alerts are classified by severity  low, medium, high, and critical so you're not woken up at 2am for a minor humidity change.
  
-** Emergency SOS**
+**Emergency SOS**
 One button. Sends an SMS to every linked caregiver simultaneously with the patient's name, current vitals, and timestamp. Uses Twilio delivered in seconds.
  
-** Caregiver Sharing**
+**Caregiver Sharing**
 Share a live read-only link with a doctor or family member. No account needed. They open the link and see real-time vitals. Link expires in 7 days and can be revoked instantly.
  
-**  AI Health Insights**
+**AI Health Insights**
 The last 7 days of vitals are sent to Gemini AI which returns a personalised meal plan and daily routine  not generic advice, but recommendations based on your actual readings.
  
-** 30-Day History**
+**30-Day History** 
 Every reading is stored and aggregated by day. See trends, spot patterns, and export a PDF health report to share with your doctor.That way accurate information are give instead of users/patient giving a guess information.
 
 
