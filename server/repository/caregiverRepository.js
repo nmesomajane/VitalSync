@@ -44,7 +44,12 @@ class CaregiverRepository {
   }
 
   async updateShareToken(id, shareToken, tokenExpiresAt) {
-    
+    console.log("updateShareToken called with:", {
+    id,
+    shareToken: shareToken ? "token_present" : "NO TOKEN",
+    tokenExpiresAt,
+  });
+  
     const caregiver = await Caregiver.findByPk(id);
     if (!caregiver) return null;
     await caregiver.update({ shareToken, tokenExpiresAt });
