@@ -6,19 +6,17 @@ import {
   toggleCaregiver,
   generateShareLink,
   getSharedVitals,
-} from "../controllers/caregivers.js";
+} from "../controllers/caregiver.js";
 import { authenticate } from "../middleware/authentication.js";
 
 const router = express.Router();
 
-
 router.use(authenticate);
 
-
-router.get("/",              getCaregivers);
-router.post("/",             addCaregiver);
-router.delete("/:id",        removeCaregiver);
-router.patch("/:id/toggle",  toggleCaregiver);
-router.post("/:id/share",    generateShareLink);
+router.get("/", authenticate, getCaregivers);
+router.post("/", authenticate, addCaregiver);
+router.delete("/:id", authenticate, removeCaregiver);
+router.patch("/:id/toggle", authenticate, toggleCaregiver);
+router.get("/:id/share", authenticate, generateShareLink);
 
 export default router;

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import caregiverRepository from "../repository/caregiverRepository.js";
-import vitalsRepository from "../repository/vitalsRepository.js";
+import vitalsRepository from "../repository/vitalRepository.js";
 import AppError from "../utilis/appError.js";
 
 class CaregiverService {

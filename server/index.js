@@ -11,6 +11,7 @@ import User from './models/user.js'
 import authRoutes from './routes/auth.js'
 import vitalsRoutes from './routes/vitals.js'
 import alertRoutes from "./routes/alerts.js";
+import caregiverRoutes from "./routes/caregiver.js";
 import AppError from "./utilis/appError.js";
 import Alert from "./models/alert.js";
 import Threshold from "./models/threshold.js";
@@ -63,6 +64,7 @@ const startServer = async () => {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/vitals", vitalsRoutes);
   app.use("/api/v1/alerts", alertRoutes);
+  app.use ("/api/v1/caregivers", caregiverRoutes);
   app.get("/", (req, res) => {
     res.send("VitalSync API is running");
   });
