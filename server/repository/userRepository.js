@@ -1,4 +1,5 @@
 import User from "../models/user.js";
+import Caregiver from "../models/caregiver.js";
 
 class UserRepository {
 
@@ -38,6 +39,16 @@ class UserRepository {
     await user.update(updateData);
     return user;
   }
+  async findCaregivers(patientId) {
+  const caregivers = await Caregiver.findAll({
+    where: {
+      patientId,
+      isActive: true,
+    
+    },
+  });
+  return caregivers;
+}
 }
 
 export default new UserRepository();

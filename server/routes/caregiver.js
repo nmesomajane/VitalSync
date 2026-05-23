@@ -18,5 +18,7 @@ router.post("/", authenticate, addCaregiver);
 router.delete("/:id", authenticate, removeCaregiver);
 router.patch("/:id/toggle", authenticate, toggleCaregiver);
 router.post("/:id/share", authenticate, generateShareLink);
+router.get("/shared/:token", authenticate, getSharedVitals);
+
 
 export default router;
