@@ -1,6 +1,6 @@
 import { generateAIResponse } from "../config/gemini.js";
 import { searchYouTubeVideos } from "../config/youtube.js";
-import vitalsRepository from "../repository/vitalsRepository.js";
+import vitalsRepository from "../repository/vitalRepository.js";
 import AppError from "../utilis/appError.js";
 
 
