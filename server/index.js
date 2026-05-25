@@ -13,6 +13,7 @@ import vitalsRoutes from './routes/vitals.js'
 import alertRoutes from "./routes/alerts.js";
 import caregiverRoutes from "./routes/caregiver.js";
 import aiRoutes from "./routes/ai.js";
+import medicationRoutes from "./routes/medication.js";
 import AppError from "./utilis/appError.js";
 import Alert from "./models/alert.js";
 import Threshold from "./models/threshold.js";
@@ -67,6 +68,7 @@ const startServer = async () => {
   app.use("/api/v1/alerts", alertRoutes);
   app.use ("/api/v1/caregivers", caregiverRoutes);
   app.use("/api/v1/ai", aiRoutes);
+  app.use("/api/v1/medications", medicationRoutes);
   app.get("/", (req, res) => {
     res.send("VitalSync API is running");
   });
