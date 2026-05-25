@@ -24,69 +24,43 @@ class VitalsRepository {
   }
 
   
-  async findDailyAverages(userId, days = 30) {
- 
-
+async findDailyAverages(userId, days = 30) {
+  try {
     const results = await sequelize.query(
       `
       SELECT
         DATE_TRUNC('day', "createdAt") AS day,
-        -- truncates each timestamp to midnight of that day
-        -- '2024-05-01 08:32:00' becomes '2024-05-01 00:00:00'
-        -- this is what allows GROUP BY to bundle same-day rows
-
         ROUND(AVG("heartRate")::numeric, 1)        AS "avgHeartRate",
         ROUND(AVG("spO2")::numeric, 1)             AS "avgSpO2",
         ROUND(AVG("bodyTemperature")::numeric, 1)  AS "avgBodyTemperature",
         ROUND(AVG("respiratoryRate")::numeric, 1)  AS "avgRespiratoryRate",
         ROUND(AVG("roomHumidity")::numeric, 1)     AS "avgRoomHumidity",
-        -- ROUND(...::numeric, 1) gives one decimal place
-        -- ::numeric casts the float to numeric type
-        -- PostgreSQL requires this for ROUND to work on floats
-
-        COUNT(*)::integer AS "totalReadings",
-        -- how many readings were taken that day
-        -- ::integer converts bigint to regular integer
-
+        COUNT(*)::integer                          AS "totalReadings",
         SUM(CASE WHEN "hasAnomaly" = true THEN 1 ELSE 0 END)::integer AS "anomalyCount"
-        -- CASE WHEN acts like an if statement inside SQL
-        -- counts only the rows where hasAnomaly is true
-        -- gives you "3 anomalies on May 1st" for the history screen
-
       FROM "Vitals"
-
       WHERE "userId" = :userId
-      -- :userId is a named parameter — sequelize replaces it
-      -- with the actual value safely, preventing SQL injection
-
-      AND "createdAt" >= NOW() - INTERVAL :interval
-      -- NOW() = current timestamp in PostgreSQL
-      -- INTERVAL '30 days' = subtract 30 days from now
-      -- combined: only rows from the last 30 days
-
+      AND "createdAt" >= NOW() - INTERVAL '1 day' * :days
       GROUP BY DATE_TRUNC('day', "createdAt")
-      -- bundles all rows with the same truncated day together
-      -- without this, AVG() would average ALL days into one number
-
       ORDER BY day ASC
-      -- ASC = oldest day first, newest last
-      -- correct order for a left-to-right timeline chart
       `,
       {
-        replacements: {
-          userId,
-          interval: `'${days} days'`,
-          // sequelize replaces :userId and :interval
-          // with these values safely
-        },
+        replacements: { userId, days: parseInt(days) },
         type: QueryTypes.SELECT,
-        // tells sequelize this is a SELECT query
-        // returns an array of plain objects — no Sequelize model wrapping
       }
     );
-
     return results;
+
+  } catch (error) {
+    console.error("findDailyAverages SQL error:", {
+      message: error.message,
+      original: error.original?.message,
+      //  this is the actual PostgreSQL error text
+      sql: error.sql,
+      //  the exact query that was sent
+    });
+    throw error;
   }
+}
 
   async findRawReadings(userId, days = 7) {
     

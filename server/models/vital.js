@@ -38,6 +38,14 @@ const Vitals = sequelize.define("Vitals", {
     
     allowNull: true,
   },
+  hasAnomaly: {
+  type: DataTypes.BOOLEAN,
+  defaultValue: false,
+},
+anomalydetails: {
+  type: DataTypes.JSONB,
+  allowNull: true,
+},
 }, { timestamps: true });
 
 export default Vitals;
