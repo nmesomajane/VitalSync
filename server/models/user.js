@@ -52,6 +52,14 @@ const User = sequelize.define(
       allowNull: true,
       // used for push notifications via Firebase Cloud Messaging
     },
+    aiDataConsent: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    aiConsentDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

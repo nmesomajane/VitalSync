@@ -12,6 +12,21 @@ const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
 
 class AIService {
 
+    async getAISuggestions(userId, days = 7) {
+  // check consent before doing anything
+  const user = await userRepository.findById(userId);
+
+  if (!user.aiDataConsent) {
+    throw new AppError(
+      "AI suggestions require data sharing consent. Enable this in your profile settings.",
+      403
+      // 403 = Forbidden — not an auth error, a consent error
+    );
+  }
+
+ 
+}
+
   // your own rule-based AI — classifies patterns from averages
 
   classifyHealthPattern(averages, anomalyRate) {
@@ -168,6 +183,8 @@ Keep the entire response under 300 words.
 
     return true;
   }
+
+  
 
   //  main method — get AI suggestions 
   async getAISuggestions(userId, days = 7) {
