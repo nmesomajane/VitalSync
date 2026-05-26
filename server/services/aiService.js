@@ -1,38 +1,130 @@
 import { generateAIResponse } from "../config/gemini.js";
 import { searchYouTubeVideos } from "../config/youtube.js";
 import vitalsRepository from "../repository/vitalRepository.js";
+import userRepository from "../repository/userRepository.js";
 import AppError from "../utilis/appError.js";
-
-
 
 const suggestionCache = new Map();
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000;
 
-// AI suggestions are recalculated every 6 hours maximum or immediately if vitals change significantly
-
 class AIService {
+  async getAISuggestions(userId, days = 7) {
+    // consent check — must be first
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
 
-    async getAISuggestions(userId, days = 7) {
-  // check consent before doing anything
-  const user = await userRepository.findById(userId);
+    if (!user.aiDataConsent) {
+      throw new AppError(
+        "AI suggestions require data sharing consent. Enable this in your profile settings.",
+        403,
+      );
+    }
 
-  if (!user.aiDataConsent) {
-    throw new AppError(
-      "AI suggestions require data sharing consent. Enable this in your profile settings.",
-      403
-      // 403 = Forbidden — not an auth error, a consent error
+    // fetch history
+    const historyResult = await vitalsRepository.findDailyAverages(
+      userId,
+      days,
     );
+
+    if (!historyResult || historyResult.length === 0) {
+      throw new AppError(
+        "Not enough health data to generate suggestions. Record at least one day of vitals first.",
+        400,
+      );
+    }
+
+    // calculate averages
+    const averages = this.calculateOverallAverages(historyResult);
+    const totalAnomalies = historyResult.reduce(
+      (sum, day) => sum + parseInt(day.anomalyCount || 0),
+      0,
+    );
+    const anomalyRate =
+      totalAnomalies /
+      historyResult.reduce(
+        (sum, day) => sum + parseInt(day.totalReadings || 0),
+        0,
+      );
+
+    // check cache
+    if (this.isCacheValid(userId, totalAnomalies)) {
+      console.log(`Returning cached AI suggestions for user ${userId}`);
+      return suggestionCache.get(userId).data;
+    }
+
+    // classify pattern
+    const pattern = this.classifyHealthPattern(averages, anomalyRate);
+
+    // build prompt and call APIs
+    const prompt = this.buildHealthPrompt(
+      averages,
+      pattern,
+      totalAnomalies,
+      days,
+    );
+    console.log(`Generating AI suggestions for pattern: ${pattern.pattern}`);
+
+    const [aiResponse, videos] = await Promise.all([
+      generateAIResponse(prompt),
+      searchYouTubeVideos(this.buildVideoSearchQuery(pattern), 3),
+    ]);
+
+    // build result
+    const result = {
+      pattern: {
+        name: pattern.pattern,
+        riskLevel: pattern.riskLevel,
+        urgency: pattern.urgency,
+      },
+      vitalsContext: {
+        averages,
+        totalAnomalies,
+        daysAnalysed: historyResult.length,
+      },
+      suggestions: aiResponse,
+      videos,
+      generatedAt: new Date().toISOString(),
+      nextRefreshAt: new Date(Date.now() + CACHE_DURATION_MS).toISOString(),
+    };
+
+    // store in cache
+    suggestionCache.set(userId, {
+      data: result,
+      generatedAt: Date.now(),
+      anomalyCount: totalAnomalies,
+    });
+
+    return result;
   }
+  //  getAISuggestions closes here
 
- 
-}
+  // video suggestions
+  async getVideoSuggestions(userId, topic) {
+    let searchQuery = topic;
 
-  // your own rule-based AI — classifies patterns from averages
+    if (!topic) {
+      const history = await vitalsRepository.findDailyAverages(userId, 7);
+      if (history.length > 0) {
+        const averages = this.calculateOverallAverages(history);
+        const anomalyRate =
+          history.reduce((sum, d) => sum + parseInt(d.anomalyCount || 0), 0) /
+          history.length;
+        const pattern = this.classifyHealthPattern(averages, anomalyRate);
+        searchQuery = this.buildVideoSearchQuery(pattern);
+      } else {
+        searchQuery = "heart health monitoring tips";
+      }
+    }
 
+    const videos = await searchYouTubeVideos(searchQuery, 5);
+    return { videos, searchQuery };
+  }
+  // getVideoSuggestions closes here
+
+  //  health pattern classifier
   classifyHealthPattern(averages, anomalyRate) {
     const { heartRate, spO2, bodyTemperature, respiratoryRate } = averages;
 
-    // critical patterns — check these first
     if (spO2 && spO2 < 93) {
       return {
         pattern: "hypoxemia",
@@ -51,7 +143,6 @@ class AIService {
       };
     }
 
-    // cardiovascular patterns
     if (heartRate && heartRate > 90 && anomalyRate > 0.25) {
       return {
         pattern: "sustained_tachycardia",
@@ -70,7 +161,6 @@ class AIService {
       };
     }
 
-    // respiratory patterns
     if (respiratoryRate && respiratoryRate > 18) {
       return {
         pattern: "elevated_respiratory_rate",
@@ -80,10 +170,11 @@ class AIService {
       };
     }
 
-    // combined mild elevation
     if (
-      heartRate && heartRate > 80 &&
-      spO2 && spO2 < 97 &&
+      heartRate &&
+      heartRate > 80 &&
+      spO2 &&
+      spO2 < 97 &&
       anomalyRate > 0.15
     ) {
       return {
@@ -94,7 +185,6 @@ class AIService {
       };
     }
 
-    // everything normal
     return {
       pattern: "normal_variation",
       riskLevel: "low",
@@ -103,9 +193,7 @@ class AIService {
     };
   }
 
-  //  build the AI prompt
-
-
+  //  prompt builder
   buildHealthPrompt(averages, pattern, anomalyCount, days) {
     return `
 You are a clinical health advisor reviewing a patient's wearable health monitoring data.
@@ -146,14 +234,10 @@ IMPORTANT: Be specific to the patient's data. Do not give generic health advice.
 If risk level is high, include a clear recommendation to consult a doctor.
 Keep the entire response under 300 words.
     `.trim();
-   
   }
 
-  
-  buildVideoSearchQuery(pattern, anomalyMetric) {
-    // creates targeted search queries based on what's wrong
-
-
+  //  video query builder
+  buildVideoSearchQuery(pattern) {
     const queries = {
       sustained_tachycardia: "how to lower resting heart rate naturally",
       bradycardia_tendency: "foods and exercises for healthy heart rate",
@@ -163,177 +247,51 @@ Keep the entire response under 300 words.
       cardiorespiratory_strain: "cardio exercises for heart and lung health",
       normal_variation: "heart rate variability improvement exercises",
     };
-
     return queries[pattern.pattern] || "cardiovascular health improvement tips";
-    // fallback to a general health query if pattern not mapped
   }
 
-  // check if cache is still valid
+  // cache check
   isCacheValid(userId, currentAnomalyCount) {
     const cached = suggestionCache.get(userId);
     if (!cached) return false;
-
     const ageMs = Date.now() - cached.generatedAt;
     if (ageMs > CACHE_DURATION_MS) return false;
-    // cache expired — older than 6 hours
-
     if (cached.anomalyCount !== currentAnomalyCount) return false;
-    // anomaly count changed — new significant event happened
-    // regenerate suggestions with updated context
-
     return true;
   }
 
-  
-
-  //  main method — get AI suggestions 
-  async getAISuggestions(userId, days = 7) {
-    //  fetch history data from database
-    const historyResult = await vitalsRepository.findDailyAverages(userId, days);
-
-    if (!historyResult || historyResult.length === 0) {
-      throw new AppError(
-        "Not enough health data to generate suggestions. Record at least one day of vitals first.",
-        400
-      );
-    }
-
-    //  calculate overall averages from daily averages
-    const averages = this.calculateOverallAverages(historyResult);
-    const totalAnomalies = historyResult.reduce(
-      (sum, day) => sum + parseInt(day.anomalyCount || 0), 0
-    );
-    const anomalyRate = totalAnomalies / historyResult.reduce(
-      (sum, day) => sum + parseInt(day.totalReadings || 0), 0
-    );
-
-    //  check cache — avoid unnecessary Gemini API calls
-    if (this.isCacheValid(userId, totalAnomalies)) {
-      console.log(`Returning cached AI suggestions for user ${userId}`);
-      return suggestionCache.get(userId).data;
-      // return cached data — saves API quota and is faster
-    }
-
-    //  classify the health pattern
-    const pattern = this.classifyHealthPattern(averages, anomalyRate);
-
-    //  build and send the prompt to Gemini
-    const prompt = this.buildHealthPrompt(averages, pattern, totalAnomalies, days);
-
-    console.log(`Generating AI suggestions for pattern: ${pattern.pattern}`);
-
-    const [aiResponse, videos] = await Promise.all([
-      generateAIResponse(prompt),
-      // call Gemini with the structured prompt
-
-      searchYouTubeVideos(
-        this.buildVideoSearchQuery(pattern),
-        3
-        // fetch 3 relevant YouTube videos simultaneously
-       
-      ),
-    ]);
-
-    //  structure the final response
-    const result = {
-      pattern: {
-        name: pattern.pattern,
-        riskLevel: pattern.riskLevel,
-        urgency: pattern.urgency,
-        // these go on the "AI Brief" card at the top of the screen
-      },
-
-      vitalsContext: {
-      
-        averages,
-        totalAnomalies,
-        daysAnalysed: historyResult.length,
-      },
-
-      suggestions: aiResponse,
-     
-
-      videos,
-    
-
-      generatedAt: new Date().toISOString(),
-      // timestamp shown to user: "Generated 2 hours ago"
-
-      nextRefreshAt: new Date(
-        Date.now() + CACHE_DURATION_MS
-      ).toISOString(),
-      // tells the app when to fetch fresh suggestions
-    };
-
-    //  store in cache
-    suggestionCache.set(userId, {
-      data: result,
-      generatedAt: Date.now(),
-      anomalyCount: totalAnomalies,
-    });
-
-    return result;
-  }
-
-  //get videos only (separate endpoint) 
-  async getVideoSuggestions(userId, topic) {
-    // allows the app to search videos for a specific topic
-  
-
-    let searchQuery = topic;
-
-    if (!topic) {
-     
-      const history = await vitalsRepository.findDailyAverages(userId, 7);
-      if (history.length > 0) {
-        const averages = this.calculateOverallAverages(history);
-        const anomalyRate = history.reduce(
-          (sum, d) => sum + parseInt(d.anomalyCount || 0), 0
-        ) / history.length;
-        const pattern = this.classifyHealthPattern(averages, anomalyRate);
-        searchQuery = this.buildVideoSearchQuery(pattern);
-      } else {
-        searchQuery = "heart health monitoring tips";
-   
-      }
-    }
-
-    const videos = await searchYouTubeVideos(searchQuery, 5);
-    
-
-    return { videos, searchQuery };
-  }
-
-  //  helper: calculate overall averages 
+  // averages calculator
   calculateOverallAverages(dailyData) {
     const metrics = [
-      "avgHeartRate", "avgSpO2",
-      "avgBodyTemperature", "avgRespiratoryRate", "avgRoomHumidity"
+      "avgHeartRate",
+      "avgSpO2",
+      "avgBodyTemperature",
+      "avgRespiratoryRate",
+      "avgRoomHumidity",
     ];
 
     const result = {};
 
     for (const metric of metrics) {
       const validValues = dailyData
-        .map(day => parseFloat(day[metric]))
-        .filter(v => !isNaN(v) && v > 0);
-        // filter out null/undefined/0 values
-       
+        .map((day) => parseFloat(day[metric]))
+        .filter((v) => !isNaN(v) && v > 0);
+
+      const cleanKey = metric
+        .replace("avg", "")
+        .replace(/^\w/, (c) => c.toLowerCase());
 
       if (validValues.length === 0) {
-        result[metric.replace("avg", "").replace(/^\w/, c => c.toLowerCase())] = null;
+        result[cleanKey] = null;
         continue;
       }
 
-      const avg = validValues.reduce((sum, v) => sum + v, 0) / validValues.length;
-
-      // convert "avgHeartRate" key to "heartRate" for cleaner response
-      const cleanKey = metric.replace("avg", "").replace(/^\w/, c => c.toLowerCase());
+      const avg =
+        validValues.reduce((sum, v) => sum + v, 0) / validValues.length;
       result[cleanKey] = parseFloat(avg.toFixed(1));
     }
 
     return result;
-  
   }
 }
 

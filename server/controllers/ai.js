@@ -1,5 +1,7 @@
 import aiService from "../services/aiService.js";
 import asyncHandler from "../utilis/asyncHandler.js";
+import userRepository from "../repository/userRepository.js";
+
 
 // POST /api/v1/ai/suggestions
 export const getAISuggestions = asyncHandler(async (req, res) => {

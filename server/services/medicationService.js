@@ -93,7 +93,7 @@ class MedicationService {
     return medication;
   }
 
-  // ─── cron job — runs every minute ───────────────────────────
+  // cron job — runs every minute 
   // checks if any medication is due right now
   // fires push notification if so
 
