@@ -14,6 +14,7 @@ import alertRoutes from "./routes/alerts.js";
 import caregiverRoutes from "./routes/caregiver.js";
 import aiRoutes from "./routes/ai.js";
 import medicationRoutes from "./routes/medication.js";
+import medicationService from "./services/medicationService.js";
 import AppError from "./utilis/appError.js";
 import Alert from "./models/alert.js";
 import Threshold from "./models/threshold.js";
@@ -48,6 +49,8 @@ const startServer = async () => {
   await connectDB();
   await sequelize.sync({ alter: true });
   console.log("Database synced");
+
+ medicationService.startMedicationReminders();
 
   app.use(cors());
   app.use(express.json());
