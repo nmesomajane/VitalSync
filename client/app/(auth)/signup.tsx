@@ -5,12 +5,12 @@ import {
   Platform, ScrollView, Alert,
 } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import api from "../../services/api";
-import useAuthStore from "../../store/authStore";
+import api from "../../src/services/api";
+import useAuthStore from "../../src/store/authStore";
 import {
   RootStackParamList, SignupPayload,
   AuthResponse, FormErrors, User,
-} from "../../types";
+} from "../../src/types/index";
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">;
 

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://192.168.1.91:3000";
+const API_URL = "http://192.168.x.x:3000";
 // replace x.x with your actual local IP
 // run ipconfig (Windows) or ifconfig (Mac) to find it
 
