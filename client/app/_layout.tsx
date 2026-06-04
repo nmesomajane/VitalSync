@@ -1,5 +1,6 @@
 // @ts-ignore: side-effect import for global CSS without type declarations
 import "../global.css"
+import React from "react";
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
