@@ -11,6 +11,7 @@ import {
   RootStackParamList, SignupPayload,
   AuthResponse, FormErrors, User,
 } from "../../src/types/index";
+import React from "react";
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">;
 

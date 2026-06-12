@@ -1,6 +1,7 @@
 import { Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import useAuthStore from "../src/store/authStore";
+import React from 'react'
 
 export default function Index() {
   const { token, isLoading } = useAuthStore();

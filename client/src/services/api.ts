@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://192.168.x.x:3000";
+const API_URL = "http://10.42.191.221:3000";
 // replace x.x with your actual local IP
 // run ipconfig (Windows) or ifconfig (Mac) to find it
 
@@ -19,11 +19,15 @@ const api: AxiosInstance = axios.create({
 // request interceptor
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // InternalAxiosRequestConfig is the TypeScript type for the config object
     const token = await SecureStore.getItemAsync("vitalsync_token");
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+     
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      } as any; 
+      
       console.log("Request interceptor: token attached");
     } else {
       console.log("Request interceptor: no token — unauthenticated");

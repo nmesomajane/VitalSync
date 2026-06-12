@@ -4,8 +4,9 @@ module.exports = function (api) {
     presets: [
       ["babel-preset-expo", { jsxImportSource: "nativewind" }]
     ],
-    plugins: [
-      ["@babel/plugin-transform-private-methods", { loose: true }]
-    ]
+   plugins: [
+  ["@babel/plugin-transform-private-methods", { loose: true }],
+  ["@babel/plugin-transform-shorthand-properties", { loose: true }]
+]
   };
 };

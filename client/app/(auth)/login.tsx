@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View,Text, TextInput, TouchableOpacity,
   ActivityIndicator, KeyboardAvoidingView,
   Platform, ScrollView, Alert,
 } from "react-native";
@@ -10,9 +10,11 @@ import * as Google from "expo-auth-session/providers/google";
 import api from "../../src/services/api";
 import useAuthStore from "../../src/store/authStore";
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
+import React from "react";
+
 
 // required for Google OAuth to work on Android
-// closes the browser after authentication completes
+
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -26,15 +28,12 @@ export default function LoginScreen() {
 
   const { setUser, setToken } = useAuthStore();
 
-  // ── Google OAuth setup ────────────────────────────────────
+  //  Google OAuth setup 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "YOUR_GOOGLE_WEB_CLIENT_ID",
-    // this is the Client ID from Google Cloud Console
-    // the same one in your .env as GOOGLE_AUTH_CLIENT_ID
-    // replace "YOUR_GOOGLE_WEB_CLIENT_ID" with the actual value
-    androidClientId: "YOUR_ANDROID_CLIENT_ID",
-    // optional — for physical Android device testing
-    // create an Android OAuth client in Google Cloud Console
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ,
+    //  Client ID 
+ 
+
   });
 
   // useEffect that fires when Google returns a response
@@ -48,8 +47,7 @@ export default function LoginScreen() {
       setGoogleLoading(true);
 
       try {
-        // send Google's access token to your backend
-        // your Passport.js strategy validates it
+      
         const result = await api.post<AuthResponse>("/api/v1/auth/google/token", {
           accessToken: authentication?.accessToken,
           // your backend uses this to verify with Google
@@ -77,7 +75,7 @@ export default function LoginScreen() {
     handleGoogleResponse();
   });
 
-  // ── validation ────────────────────────────────────────────
+ 
   const validate = (): boolean => {
     const newErrors: FormErrors<LoginPayload> = {};
 
@@ -97,7 +95,7 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ── login handler ─────────────────────────────────────────
+ 
   const handleLogin = async (): Promise<void> => {
     console.log("handleLogin called:", email);
     if (!validate()) return;
@@ -116,8 +114,7 @@ export default function LoginScreen() {
       await setToken(response.data.token);
 
       router.replace("/(tabs)/index");
-      // router.replace = navigate and remove login from history
-      // user can't go back to login by pressing back button
+      
 
     } catch (error: any) {
       console.error("Login error:", {
@@ -140,7 +137,7 @@ export default function LoginScreen() {
       className="flex-1 bg-dark"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView
+      <ScrollView 
         contentContainerStyle={{ flexGrow: 1 }}
         className="px-6"
         keyboardShouldPersistTaps="handled"
@@ -157,6 +154,8 @@ export default function LoginScreen() {
             Monitor your health in real time
           </Text>
         </View>
+
+        
 
         {/* Email field */}
         <View className="mb-4">

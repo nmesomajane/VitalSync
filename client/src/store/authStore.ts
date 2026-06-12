@@ -5,7 +5,6 @@ import { User } from "../types";
 // define the shape of the store
 interface AuthState {
   user: User | null;
-  // User | null means either a User object or null
   token: string | null;
   isLoading: boolean;
 
@@ -18,8 +17,7 @@ interface AuthState {
 }
 
 const useAuthStore = create<AuthState>((set) => ({
-  // create<AuthState> tells TypeScript the store must match AuthState
-  // if you forget a field, TypeScript underlines it immediately
+  
   user: null,
   token: null,
   isLoading: false,

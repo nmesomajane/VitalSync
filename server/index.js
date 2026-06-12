@@ -30,15 +30,12 @@ const app = express();
 const httpServer = createServer(app);
 
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || "3000",
-    // which clients are allowed to connect via WebSocket or replace with the actual production url
-   
-    methods: ["GET", "POST"],
-  },
-});
-
+app.use(cors({
+  origin: "*",
+  // accept requests from any origin during development
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 app.set("io", io);
 
 
