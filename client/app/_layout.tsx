@@ -2,14 +2,10 @@
 import "../global.css"
 import React from "react";
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
-import * as SplashScreen from "expo-splash-screen";
 import useAuthStore from "../src/store/authStore";
-
-// keep splash screen visible while we check for stored token
-SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { token, setToken, setLoading } = useAuthStore();
@@ -17,43 +13,41 @@ export default function RootLayout() {
   console.log("RootLayout rendered — token present:", !!token);
 
   useEffect(() => {
-    const checkToken = async () => {
-      console.log("RootLayout: checking SecureStore for saved token");
+    const restoreSession = async () => {
+      console.log("_layout: checking SecureStore");
       setLoading(true);
 
       try {
-        const stored = await SecureStore.getItemAsync("vitalsync_token");
-
-        if (stored) {
-          console.log("RootLayout: token found — restoring session");
-          await setToken(stored);
-        } else {
-          console.log("RootLayout: no token — user must login");
+        const saved = await SecureStore.getItemAsync("vitalsync_token");
+        if (saved) {
+          console.log("_layout: token found");
+          await setToken(saved);
         }
-      } catch (error) {
-        console.error("RootLayout: token check failed:", error);
+      } catch (e) {
+        console.error("_layout: error:", e);
       } finally {
         setLoading(false);
-        await SplashScreen.hideAsync();
-        // hide splash screen once we know the auth state
       }
     };
-
-    checkToken();
+    restoreSession();
   }, []);
+
+  
+  useEffect(() => {
+    if (token) {
+      console.log("_layout: token detected — pushing to tabs");
+      router.replace("/(tabs)");
+    }
+  }, [token]);
+  
 
   return (
     <>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
-        {/*
-          Expo Router uses these screens based on the files in app/
-          Each Stack.Screen name must match the folder/file name exactly
-        */}
+        <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
-        {/* (auth) folder = login and signup screens */}
         <Stack.Screen name="(tabs)" />
-        {/* (tabs) folder = main app screens with bottom tab bar */}
       </Stack>
     </>
   );

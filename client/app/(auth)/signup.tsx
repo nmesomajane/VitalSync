@@ -1,195 +1,174 @@
-import { useState,JSX } from "react";
+import { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
   ActivityIndicator, KeyboardAvoidingView,
   Platform, ScrollView, Alert,
 } from "react-native";
-import { StackNavigationProp } from "@react-navigation/stack";
+import { router } from "expo-router";
 import api from "../../src/services/api";
 import useAuthStore from "../../src/store/authStore";
-import {
-  RootStackParamList, SignupPayload,
-  AuthResponse, FormErrors, User,
-} from "../../src/types/index";
+import { AuthResponse, FormErrors } from "../../src/types";
 import React from "react";
 
-type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">;
-
-interface Props {
-  navigation: SignupScreenNavigationProp;
-}
-
-// the form has more fields than SignupPayload because of confirmPassword
-// so we define a separate FormState type
 interface FormState {
   name: string;
   email: string;
   password: string;
   confirmPassword: string;
   age: string;
-  // string because TextInput always returns strings
-  // we convert to number before sending to API
   gender: "male" | "female" | "other" | "";
-  // "" = nothing selected yet
 }
 
-export default function SignupScreen({ navigation }: Props): JSX.Element {
+// ── Field component OUTSIDE SignupScreen ──────────────────────
+// this is the critical fix — defined outside means it's created
+// ONCE when the file loads, not on every keystroke
+// React can now reuse the same component instance between renders
+// and the keyboard stays open
+
+interface FieldProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  error?: string;
+  keyboard?: "default" | "email-address" | "numeric";
+  secure?: boolean;
+  caps?: "none" | "words" | "sentences" | "characters";
+}
+
+const Field = ({
+  label, value, onChangeText, placeholder,
+  error, keyboard = "default",
+  secure = false, caps = "words",
+}: FieldProps) => (
+  // notice: no access to "form" state or "errors" directly
+  // everything it needs is passed as props from SignupScreen
+  // this makes it a pure presentational component
+  <View style={{ marginBottom: 16 }}>
+    <Text style={{
+      fontSize: 11, fontWeight: "700", color: "#64748b",
+      letterSpacing: 1, marginBottom: 8, textTransform: "uppercase",
+    }}>
+      {label}
+    </Text>
+    <TextInput
+      style={{
+        backgroundColor: "#0f1923",
+        borderWidth: 1,
+        borderColor: error ? "#e94560" : "#1e293b",
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 15,
+        color: "#f1f5f9",
+      }}
+      placeholder={placeholder}
+      placeholderTextColor="#475569"
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboard}
+      secureTextEntry={secure}
+      autoCapitalize={caps}
+      autoCorrect={false}
+    />
+    {error && (
+      <Text style={{ color: "#e94560", fontSize: 12, marginTop: 5 }}>
+        {error}
+      </Text>
+    )}
+  </View>
+);
+
+// ── SignupScreen ──────────────────────────────────────────────
+export default function SignupScreen() {
   console.log("SignupScreen rendered");
 
   const [form, setForm] = useState<FormState>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    age: "",
-    gender: "",
+    name: "", email: "", password: "",
+    confirmPassword: "", age: "", gender: "",
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors<FormState>>({});
   const { setUser, setToken } = useAuthStore();
 
-  // ── update one field ────────────────────────────────────────
-  const updateField = <K extends keyof FormState>(
+  // useCallback prevents updateField from being recreated on every render
+  // without useCallback, a new function reference is created each render
+  // which could still cause subtle re-render issues
+  const updateField = useCallback(<K extends keyof FormState>(
     field: K,
     value: FormState[K]
-  ): void => {
-    // <K extends keyof FormState> = generic constrained to FormState keys
-    // this ensures field must be a valid FormState key
-    // and value must match the type of that field
+  ) => {
     console.log(`Field "${field}" updated:`, value);
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
-  };
+  }, [errors]);
 
-  // ── validation ──────────────────────────────────────────────
   const validate = (): boolean => {
-    const newErrors: FormErrors<FormState> = {};
-
-    if (!form.name.trim() || form.name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
-    }
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = "Please enter a valid email";
-    }
-    if (!form.password) {
-      newErrors.password = "Password is required";
-    } else if (form.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-    if (form.password !== form.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-    if (form.age && (isNaN(Number(form.age)) || Number(form.age) < 1)) {
-      newErrors.age = "Please enter a valid age";
-    }
-
-    console.log("Signup validation errors:", newErrors);
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const e: FormErrors<FormState> = {};
+    if (!form.name.trim() || form.name.trim().length < 2)
+      e.name = "Name must be at least 2 characters";
+    if (!form.email.trim())
+      e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Invalid email format";
+    if (!form.password)
+      e.password = "Password is required";
+    else if (form.password.length < 6)
+      e.password = "Minimum 6 characters";
+    if (form.password !== form.confirmPassword)
+      e.confirmPassword = "Passwords do not match";
+    if (form.age && isNaN(Number(form.age)))
+      e.age = "Enter a valid age";
+    console.log("Signup validation:", e);
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  // ── signup handler ──────────────────────────────────────────
   const handleSignup = async (): Promise<void> => {
     console.log("handleSignup called:", form.email);
-
     if (!validate()) return;
-
     setIsLoading(true);
 
     try {
-      const payload: SignupPayload = {
+      const response = await api.post<AuthResponse>("/api/v1/auth/signup", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         ...(form.age && { age: parseInt(form.age, 10) }),
-        // spread only if age is not empty
-        // parseInt(form.age, 10) — 10 is the radix (base 10 number system)
         ...(form.gender && { gender: form.gender }),
-      };
-
-      console.log("Sending POST /api/v1/auth/signup");
-
-      const response = await api.post<AuthResponse>("/api/v1/auth/signup", payload);
+      });
 
       console.log("Signup success:", response.data.user.id);
-
       setUser(response.data.user);
       await setToken(response.data.token);
 
-    } catch (error: any) {
-      console.error("Signup error:", {
-        status: error.response?.status,
-        message: error.response?.data?.message,
-      });
+      console.log("Navigating to tabs");
+      router.replace("/(tabs)");
 
-      Alert.alert(
-        "Signup Failed",
-        error.response?.data?.message ?? "Something went wrong. Try again.",
-        [{ text: "OK" }]
-      );
+    } catch (error: any) {
+      console.error("Signup error:", error.response?.data ?? error.message);
+
+      if (!error.response) {
+        Alert.alert(
+          "Connection Failed",
+          "Cannot reach server. Check your WiFi and API_URL.",
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert(
+          "Signup Failed",
+          error.response?.data?.message ?? "Something went wrong.",
+          [{ text: "OK" }]
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── reusable typed input ────────────────────────────────────
-  interface InputFieldProps {
-    label: string;
-    field: keyof FormState;
-    placeholder: string;
-    keyboardType?: "default" | "email-address" | "numeric";
-    secureEntry?: boolean;
-    autoCapitalize?: "none" | "words" | "sentences" | "characters";
-  }
-
-  const InputField = ({
-    label, field, placeholder,
-    keyboardType = "default",
-    secureEntry = false,
-    autoCapitalize = "words",
-  }: InputFieldProps): JSX.Element => (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{
-        fontSize: 11, fontWeight: "700", color: "#64748b",
-        letterSpacing: 1, marginBottom: 8, textTransform: "uppercase",
-      }}>
-        {label}
-      </Text>
-      <TextInput
-        style={{
-          backgroundColor: "#0f1923",
-          borderWidth: 1,
-          borderColor: errors[field] ? "#e94560" : "#1e293b",
-          borderRadius: 12,
-          padding: 14,
-          fontSize: 15,
-          color: "#f1f5f9",
-        }}
-        placeholder={placeholder}
-        placeholderTextColor="#475569"
-        value={String(form[field])}
-        onChangeText={(text: string) =>
-          updateField(field, text as FormState[typeof field])
-        }
-        keyboardType={keyboardType}
-        secureTextEntry={secureEntry}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-      />
-      {errors[field] && (
-        <Text style={{ color: "#e94560", fontSize: 12, marginTop: 5 }}>
-          {errors[field]}
-        </Text>
-      )}
-    </View>
-  );
-
-  const genderOptions: Array<"male" | "female" | "other"> = ["male", "female", "other"];
+  const genders: Array<"male" | "female" | "other"> = ["male", "female", "other"];
 
   return (
     <KeyboardAvoidingView
@@ -204,10 +183,7 @@ export default function SignupScreen({ navigation }: Props): JSX.Element {
         {/* Back */}
         <TouchableOpacity
           style={{ marginTop: 52, marginBottom: 32, alignSelf: "flex-start" }}
-          onPress={() => {
-            console.log("Going back to Login");
-            navigation.goBack();
-          }}
+          onPress={() => router.back()}
         >
           <Text style={{ color: "#64748b", fontSize: 14 }}>← Back to login</Text>
         </TouchableOpacity>
@@ -222,26 +198,49 @@ export default function SignupScreen({ navigation }: Props): JSX.Element {
           </Text>
         </View>
 
-        <InputField label="Full Name" field="name" placeholder="Nmesoma" />
-        <InputField
-          label="Email" field="email"
+        {/* Fields — now passing value and onChangeText as props */}
+        <Field
+          label="Full Name"
+          value={form.name}
+          onChangeText={(t) => updateField("name", t)}
+          placeholder="Nmesoma"
+          error={errors.name}
+        />
+        <Field
+          label="Email"
+          value={form.email}
+          onChangeText={(t) => updateField("email", t)}
           placeholder="nmesoma@email.com"
-          keyboardType="email-address" autoCapitalize="none"
+          keyboard="email-address"
+          caps="none"
+          error={errors.email}
         />
-        <InputField
-          label="Password" field="password"
+        <Field
+          label="Password"
+          value={form.password}
+          onChangeText={(t) => updateField("password", t)}
           placeholder="••••••••"
-          secureEntry={true} autoCapitalize="none"
+          secure
+          caps="none"
+          error={errors.password}
         />
-        <InputField
-          label="Confirm Password" field="confirmPassword"
+        <Field
+          label="Confirm Password"
+          value={form.confirmPassword}
+          onChangeText={(t) => updateField("confirmPassword", t)}
           placeholder="••••••••"
-          secureEntry={true} autoCapitalize="none"
+          secure
+          caps="none"
+          error={errors.confirmPassword}
         />
-        <InputField
-          label="Age (optional)" field="age"
-          placeholder="22" keyboardType="numeric"
-          autoCapitalize="none"
+        <Field
+          label="Age (optional)"
+          value={form.age}
+          onChangeText={(t) => updateField("age", t)}
+          placeholder="22"
+          keyboard="numeric"
+          caps="none"
+          error={errors.age}
         />
 
         {/* Gender */}
@@ -253,26 +252,23 @@ export default function SignupScreen({ navigation }: Props): JSX.Element {
             Gender (optional)
           </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {genderOptions.map((option) => (
+            {genders.map((g) => (
               <TouchableOpacity
-                key={option}
-                onPress={() => {
-                  console.log("Gender selected:", option);
-                  updateField("gender", option);
-                }}
+                key={g}
+                onPress={() => updateField("gender", g)}
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
                   alignItems: "center",
-                  backgroundColor: form.gender === option ? "#e9456020" : "#0f1923",
+                  backgroundColor: form.gender === g ? "#e9456020" : "#0f1923",
                   borderWidth: 1,
-                  borderColor: form.gender === option ? "#e94560" : "#1e293b",
+                  borderColor: form.gender === g ? "#e94560" : "#1e293b",
                 }}
               >
                 <Text style={{
-                  color: form.gender === option ? "#e94560" : "#64748b",
+                  color: form.gender === g ? "#e94560" : "#64748b",
                   fontSize: 12, fontWeight: "600", textTransform: "capitalize",
                 }}>
-                  {option}
+                  {g}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -301,7 +297,7 @@ export default function SignupScreen({ navigation }: Props): JSX.Element {
 
         <TouchableOpacity
           style={{ alignItems: "center", padding: 12, marginBottom: 32 }}
-          onPress={() => navigation.navigate("Login")}
+          onPress={() => router.push("/(auth)/login")}
         >
           <Text style={{ color: "#64748b", fontSize: 14 }}>
             Already have an account?{" "}
