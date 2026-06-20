@@ -1,9 +1,13 @@
 import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Colors } from "../constants/colors";
 import React from "react";
 
 // define exactly what data this component needs
 interface VitalCardProps {
-  icon: string;
+  iconName: string;
+  // the icon name from the library e.g. "heart" or "lungs"
+  iconSet?: string;
   label: string;
   value: number | null;
   unit: string;
@@ -13,66 +17,100 @@ interface VitalCardProps {
 }
 
 export default function VitalCard({
-  icon, label, value, unit, color, status, onPress
+ iconName, iconSet = "ionicons", label, value, unit, color, status, onPress
 }: VitalCardProps) {
-  const getBgColor = () => {
-    if (status === "Critical") return "#1a0808";
-    if (status === "High" || status === "Low") return "#1a1000";
-    return "#0f1923";
+   const getBgColor = (): string => {
+    if (!status || status === "Normal") return Colors.card;
+    if (status === "Critical") return "#1c0a0a";
+    return "#1a1400";
   };
 
   // determine border color
-  const getBorderColor = () => {
-    if (status === "Critical") return "#e9456060";
-    if (status === "High" || status === "Low") return "#f9731660";
-    return `${color}30`;
-   
-   
+ const getBorderColor = (): string => {
+    if (!status || status === "Normal") return Colors.cardBorder;
+    if (status === "Critical") return `${Colors.danger}50`;
+    return `${Colors.warning}50`;
   };
 
-  return (
+    const getStatusColor = (): string => {
+    if (status === "Normal") return Colors.success;
+    if (status === "Critical") return Colors.danger;
+    return Colors.warning;
+  };
+
+   const renderIcon = () => {
+    const iconSize = 22;
+
+    if (iconSet === "material") {
+      return (
+        <MaterialCommunityIcons
+          name={iconName as any}
+          size={iconSize}
+          color={color}
+         
+        />
+      );
+    }
+    return (
+      <Ionicons
+        name={iconName as any}
+        size={iconSize}
+        color={color}
+      />
+    );
+  };
+
+
+    return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
-      
-
       style={{
         backgroundColor: getBgColor(),
         borderWidth: 1,
         borderColor: getBorderColor(),
-        borderRadius: 14,
-        padding: 14,
+        borderRadius: 16,
+        padding: 16,
         flex: 1,
-        
       }}
     >
-      {/* Top row — icon and status badge */}
+      {/* Top row */}
       <View style={{
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 10,
+        alignItems: "center",
+        marginBottom: 12,
       }}>
-        <Text style={{ fontSize: 22 }}>{icon}</Text>
+        {/* Icon in a colored circle */}
+        <View style={{
+          width: 36, height: 36,
+          borderRadius: 10,
+          backgroundColor: `${color}15`,
+          // color + 15 hex = very transparent background
+          // e.g. red icon on very faint red background
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          {renderIcon()}
+        </View>
 
+        {/* Status badge */}
         {status && (
-         
           <View style={{
-            backgroundColor: status === "Normal" ? "#0d2a1a" : "#1a1000",
-            paddingHorizontal: 7,
-            paddingVertical: 2,
-            borderRadius: 4,
+            backgroundColor: `${getStatusColor()}15`,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 6,
+            borderWidth: 1,
+            borderColor: `${getStatusColor()}30`,
           }}>
             <Text style={{
               fontSize: 9,
               fontWeight: "700",
-              color: status === "Normal" ? "#4ade80"
-                : status === "Critical" ? "#e94560"
-                : "#fbbf24",
-             
+              color: getStatusColor(),
               letterSpacing: 0.5,
             }}>
-              {status}
+              {status.toUpperCase()}
             </Text>
           </View>
         )}
@@ -80,28 +118,29 @@ export default function VitalCard({
 
       {/* Label */}
       <Text style={{
-        fontSize: 9,
-        color: "#64748b",
-        letterSpacing: 1,
+        fontSize: 10,
+        color: Colors.textMuted,
+        letterSpacing: 0.8,
         textTransform: "uppercase",
-        marginBottom: 4,
+        marginBottom: 6,
+        fontWeight: "600",
       }}>
         {label}
       </Text>
 
-      {/* Value and unit */}
+      {/* Value */}
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
         <Text style={{
-          fontSize: 26,
+          fontSize: 28,
           fontWeight: "800",
-          color: value !== null ? color : "#334155",
-         
-          lineHeight: 32,
+          color: value !== null ? color : Colors.textMuted,
+          lineHeight: 34,
         }}>
           {value !== null ? value : "--"}
-        
         </Text>
-        <Text style={{ fontSize: 11, color: "#475569" }}>{unit}</Text>
+        <Text style={{ fontSize: 12, color: Colors.textMuted, fontWeight: "500" }}>
+          {unit}
+        </Text>
       </View>
     </TouchableOpacity>
   );

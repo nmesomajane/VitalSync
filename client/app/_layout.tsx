@@ -1,11 +1,12 @@
 // @ts-ignore: side-effect import for global CSS without type declarations
 import "../global.css"
-import React from "react";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import useAuthStore from "../src/store/authStore";
+
 
 export default function RootLayout() {
   const { token, setToken, setLoading } = useAuthStore();

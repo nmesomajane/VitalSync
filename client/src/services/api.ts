@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.1.91:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.121.129.221:3000";
 // ↑ THIS is most likely your problem
 // replace x with your computer's actual IP
 // run "ipconfig" on Windows → look for IPv4 Address under WiFi
