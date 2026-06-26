@@ -5,7 +5,7 @@ import React from "react";
 interface HealthScoreRingProps {
   score: number | null;
   size?: number;
-  // diameter of the ring in pixels — defaults to 100
+ 
 }
 
 export default function HealthScoreRing({ score, size = 100 }: HealthScoreRingProps) {

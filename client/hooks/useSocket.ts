@@ -7,25 +7,22 @@ import { Vitals, Alert } from "../src/types";
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3000";
 
-
 export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
-  
 
-  const { setLatestVitals, setConnected, setActiveAlert, incrementUnreadCount } =
-    useVitalsStore();
-  
+  const {
+    setLatestVitals,
+    setConnected,
+    setActiveAlert,
+    incrementUnreadCount,
+  } = useVitalsStore();
 
   const { token } = useAuthStore();
 
-
   useEffect(() => {
-
-
     if (!token) {
       console.log("useSocket: no token — skipping WebSocket connection");
       return;
- 
     }
 
     const connectSocket = async () => {
@@ -33,10 +30,9 @@ export const useSocket = () => {
 
       const socket = io(SOCKET_URL, {
         auth: { token },
-        
 
         transports: ["websocket"],
-        
+
         reconnection: true,
 
         reconnectionAttempts: 5,
@@ -44,11 +40,10 @@ export const useSocket = () => {
       });
 
       socketRef.current = socket;
-     
+
       socket.on("connect", () => {
         console.log("useSocket: ✅ connected — socket id:", socket.id);
         setConnected(true);
-      
       });
 
       socket.on("disconnect", (reason: string) => {
@@ -62,53 +57,54 @@ export const useSocket = () => {
         setConnected(false);
       });
 
-      // vitals events 
-      socket.on("vitals:update", (payload: { vital: Vitals; healthScore: number }) => {
-       
+      // vitals events
+      socket.on(
+        "vitals:update",
+        (payload: { vital: Vitals; healthScore: number }) => {
+          console.log("useSocket: vitals:update received:", {
+            heartRate: payload.vital?.heartRate,
+            hasAnomaly: payload.vital?.hasAnomaly,
+          });
 
-        console.log("useSocket: vitals:update received:", {
-          heartRate: payload.vital?.heartRate,
-          hasAnomaly: payload.vital?.hasAnomaly,
-        });
+          if (payload.vital) {
+            const vitalsWithScore: Vitals = {
+              ...payload.vital,
+              healthScore: payload.healthScore,
+            };
+            setLatestVitals(vitalsWithScore);
 
-        if (payload.vital) {
-          const vitalsWithScore: Vitals = {
-            ...payload.vital,
-            
-            healthScore: payload.healthScore,
-           
-          };
-          setLatestVitals(vitalsWithScore);
-          
-        }
-      });
+            // ↓ ADD THIS LINE
+            useVitalsStore
+              .getState()
+              .setLastReadingAt(new Date().toISOString());
+            // records the exact moment live hardware data arrived
+            // used to determine if data is fresh or stale
+          }
+        },
+      );
 
-      //  alert events 
+      //  alert events
       socket.on("vitals:alert", (alertData: Alert) => {
-      
-
         console.log("useSocket: ⚠️ vitals:alert received:", alertData.message);
 
         setActiveAlert(alertData);
-        
 
         incrementUnreadCount();
-      
       });
 
-      // ECG stream 
+      // ECG stream
       socket.on("ecg:stream", (payload: { ecgData: number[] }) => {
-        
-        console.log("useSocket: ecg:stream received, points:", payload.ecgData?.length);
+        console.log(
+          "useSocket: ecg:stream received, points:",
+          payload.ecgData?.length,
+        );
       });
     };
 
     connectSocket();
 
-    // cleanup 
+    // cleanup
     return () => {
-      
-
       if (socketRef.current) {
         console.log("useSocket: disconnecting socket");
         socketRef.current.disconnect();
@@ -117,8 +113,6 @@ export const useSocket = () => {
       }
     };
   }, [token]);
-  
 
   return socketRef.current;
-
 };

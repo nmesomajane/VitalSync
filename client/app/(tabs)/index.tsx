@@ -1,11 +1,11 @@
-import { useState } from "react";
+import  React, { useState } from "react";
 import {
   View, Text, ScrollView,
   TouchableOpacity, Alert,
   ActivityIndicator, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons} from "@expo/vector-icons";
 import { useSocket } from "../../hooks/useSocket";
 import { useVitals } from "../../hooks/useVitals";
 import useVitalsStore from "../../src/store/vitalsStore";
@@ -15,22 +15,57 @@ import HealthScoreRing from "../../components/HealthScoreRing";
 import AlertBanner from "../../components/AlertBanner";
 import { triggerSOS } from "../../src/services/vitals";
 import { Colors } from "../../constants/colors";
-import React from "react";
+
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
-  const { latestVitals, isConnected } = useVitalsStore();
+  const { latestVitals, isConnected, lastReadingAt } = useVitalsStore();
+  // ↑ added lastReadingAt
   const { isLoading } = useVitals();
   useSocket();
 
   const insets = useSafeAreaInsets();
-  // get safe area insets for this screen too
-  // paddingTop: insets.top ensures content clears the status bar
-  // on all phones — notched, punch-hole, or regular
-
   const [sosLoading, setSosLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // ── connection status logic ─────────────────────────────────
+  const getConnectionStatus = (): {
+    label: string;
+    color: string;
+    isLive: boolean;
+  } => {
+    if (!isConnected) {
+      // WebSocket dropped — not connected to server at all
+      return { label: "OFFLINE", color: Colors.offline, isLive: false };
+    }
+
+    if (!lastReadingAt) {
+      // connected to server but hardware hasn't sent anything yet
+    
+      return { label: "LIVE", color: Colors.online, isLive: false };
+     
+    }
+
+    const secondsSince =
+      (Date.now() - new Date(lastReadingAt).getTime()) / 1000;
+
+    if (secondsSince < 10) {
+      
+      return { label: "LIVE", color: Colors.online, isLive: true };
+    }
+
+    
+    return { label: "LIVE", color: Colors.online, isLive: false };
+  };
+
+  const connectionStatus = getConnectionStatus();
+
+
+  const showStaleDataBanner =
+    latestVitals !== null && !connectionStatus.isLive;
+  
+
+  //  rest of your existing functions 
   const getStatus = (
     value: number | null, min: number, max: number
   ): "Normal" | "High" | "Low" | "Critical" | undefined => {
@@ -102,7 +137,6 @@ export default function DashboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-
       <AlertBanner />
 
       <ScrollView
@@ -117,11 +151,9 @@ export default function DashboardScreen() {
         }
       >
 
-        {/* ── Header ────────────────────────────────────────── */}
+        {/* Header */}
         <View style={{
           paddingTop: insets.top + 12,
-          // insets.top = status bar height on this specific phone
-          // ensures content never goes under status bar icons
           paddingHorizontal: 20,
           paddingBottom: 16,
           flexDirection: "row",
@@ -143,33 +175,30 @@ export default function DashboardScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {/* Connection status */}
+
+            {/* UPDATED connection indicator  */}
             <View style={{
               flexDirection: "row",
               alignItems: "center",
               gap: 5,
-              backgroundColor: isConnected
-                ? `${Colors.online}15`
-                : `${Colors.offline}15`,
+              backgroundColor: `${connectionStatus.color}15`,
               paddingHorizontal: 10,
               paddingVertical: 5,
               borderRadius: 20,
               borderWidth: 1,
-              borderColor: isConnected
-                ? `${Colors.online}30`
-                : `${Colors.offline}30`,
+              borderColor: `${connectionStatus.color}30`,
             }}>
               <View style={{
                 width: 6, height: 6, borderRadius: 3,
-                backgroundColor: isConnected ? Colors.online : Colors.offline,
+                backgroundColor: connectionStatus.color,
               }} />
               <Text style={{
                 fontSize: 10,
                 fontWeight: "700",
-                color: isConnected ? Colors.online : Colors.offline,
+                color: connectionStatus.color,
                 letterSpacing: 0.5,
               }}>
-                {isConnected ? "LIVE" : "OFFLINE"}
+                {connectionStatus.label}
               </Text>
             </View>
 
@@ -192,11 +221,48 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ── Health Score Card ─────────────────────────────── */}
+        {/* STALE DATA WARNING BANNER */}
+        {showStaleDataBanner && (
+          <View style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            backgroundColor: `${Colors.warning}10`,
+            borderRadius: 12,
+            padding: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            borderWidth: 1,
+            borderColor: `${Colors.warning}30`,
+          }}>
+            <Ionicons
+              name="hardware-chip-outline"
+              size={16}
+              color={Colors.warning}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={{
+                color: Colors.warning,
+                fontSize: 12,
+                fontWeight: "600",
+              }}>
+                Showing last recorded data
+              </Text>
+              <Text style={{
+                color: Colors.textMuted,
+                fontSize: 11,
+                marginTop: 1,
+              }}>
+                Connect your VitalSync device for live monitoring
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Health Score Card — unchanged */}
         <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
           <View style={{
             backgroundColor: Colors.primary,
-            // blue gradient card for health score
             borderRadius: 20,
             padding: 20,
             flexDirection: "row",
@@ -232,7 +298,6 @@ export default function DashboardScreen() {
                   : "Connect device to see score"}
               </Text>
             </View>
-
             <HealthScoreRing
               score={latestVitals?.healthScore ?? null}
               size={80}
@@ -240,7 +305,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ── Section title ─────────────────────────────────── */}
+        {/* Section title — unchanged */}
         <View style={{
           paddingHorizontal: 20,
           marginBottom: 12,
@@ -256,14 +321,13 @@ export default function DashboardScreen() {
             Vital Signs
           </Text>
           <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
-            {latestVitals ? "Live data" : "No device connected"}
+            {connectionStatus.isLive ? "Streaming live" : latestVitals ? "Last recorded" : "No device connected"}
+            {/* dynamically shows the data source */}
           </Text>
         </View>
 
-        {/* ── Vitals Grid ───────────────────────────────────── */}
+        {/* Vitals Grid — unchanged */}
         <View style={{ paddingHorizontal: 16 }}>
-
-          {/* Row 1 */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
             <VitalCard
               iconName="heart"
@@ -285,7 +349,6 @@ export default function DashboardScreen() {
             />
           </View>
 
-          {/* Row 2 */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
             <VitalCard
               iconName="thermometer"
@@ -307,7 +370,6 @@ export default function DashboardScreen() {
             />
           </View>
 
-          {/* Row 3 — full width */}
           <VitalCard
             iconName="lungs"
             iconSet="material"
@@ -319,7 +381,7 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {/* ── No device connected ───────────────────────────── */}
+        {/* Empty state — unchanged */}
         {!latestVitals && (
           <View style={{
             marginHorizontal: 16,
@@ -332,11 +394,7 @@ export default function DashboardScreen() {
             borderColor: Colors.cardBorder,
             borderStyle: "dashed",
           }}>
-            <Ionicons
-              name="hardware-chip-outline"
-              size={40}
-              color={Colors.textMuted}
-            />
+            <Ionicons name="hardware-chip-outline" size={40} color={Colors.textMuted} />
             <Text style={{
               color: Colors.textPrimary,
               fontWeight: "700",
@@ -357,7 +415,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ── SOS Button ────────────────────────────────────── */}
+        {/* SOS Button — unchanged */}
         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
           <TouchableOpacity
             onPress={handleSOS}
@@ -381,30 +439,18 @@ export default function DashboardScreen() {
               alignItems: "center",
               justifyContent: "center",
             }}>
-              {sosLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Ionicons name="alert-circle" size={26} color="white" />
-              )}
+              {sosLoading
+                ? <ActivityIndicator color="white" size="small" />
+                : <Ionicons name="alert-circle" size={26} color="white" />}
             </View>
-
             <View style={{ flex: 1 }}>
-              <Text style={{
-                color: Colors.danger,
-                fontWeight: "700",
-                fontSize: 15,
-              }}>
+              <Text style={{ color: Colors.danger, fontWeight: "700", fontSize: 15 }}>
                 Emergency SOS
               </Text>
-              <Text style={{
-                color: Colors.textMuted,
-                fontSize: 12,
-                marginTop: 2,
-              }}>
+              <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 2 }}>
                 Instantly alerts all caregivers
               </Text>
             </View>
-
             <View style={{
               backgroundColor: `${Colors.danger}15`,
               borderRadius: 8,

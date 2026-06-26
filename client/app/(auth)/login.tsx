@@ -117,17 +117,9 @@ export default function LoginScreen() {
       
 
     } catch (error: any) {
-      console.error("Login error:", {
-        status: error.response?.status,
-        message: error.response?.data?.message,
-      });
-
-      Alert.alert(
-        "Login Failed",
-        error.response?.data?.message ?? "Check your connection.",
-        [{ text: "OK" }]
-      );
-    } finally {
+  console.log("Login error:", error?.message);
+  console.log("Full error:", JSON.stringify(error, null, 2));
+} finally {
       setIsLoading(false);
     }
   };

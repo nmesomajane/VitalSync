@@ -1,29 +1,23 @@
 import { create } from "zustand";
 import { Vitals, Alert } from "../types";
 
-
-interface VitalsState { 
+interface VitalsState {
   latestVitals: Vitals | null;
-
   isConnected: boolean;
-
   isLoading: boolean;
-  
-
-  //  alerts 
   activeAlert: Alert | null;
- 
-
   unreadAlertCount: number;
+  lastReadingAt: string | null;
 
 
-  //  actions 
   setLatestVitals: (vitals: Vitals) => void;
   setConnected: (connected: boolean) => void;
   setLoading: (loading: boolean) => void;
   setActiveAlert: (alert: Alert | null) => void;
   incrementUnreadCount: () => void;
   clearActiveAlert: () => void;
+  setLastReadingAt: (time: string) => void;
+ 
 }
 
 const useVitalsStore = create<VitalsState>((set) => ({
@@ -32,34 +26,27 @@ const useVitalsStore = create<VitalsState>((set) => ({
   isLoading: false,
   activeAlert: null,
   unreadAlertCount: 0,
+  lastReadingAt: null,
+ 
 
   setLatestVitals: (vitals: Vitals) => {
-    console.log("vitalsStore: new vitals received:", {
-      heartRate: vitals.heartRate,
-      spO2: vitals.spO2,
-      hasAnomaly: vitals.hasAnomaly,
-    });
+    console.log("vitalsStore: new vitals:", vitals.heartRate);
     set({ latestVitals: vitals });
-   
   },
-
   setConnected: (connected: boolean) => {
-    console.log("vitalsStore: connection status:", connected);
+    console.log("vitalsStore: connected:", connected);
     set({ isConnected: connected });
   },
-
   setLoading: (loading: boolean) => set({ isLoading: loading }),
-
-  setActiveAlert: (alert: Alert | null) => {
-    console.log("vitalsStore: active alert set:", alert?.message ?? "cleared");
-    set({ activeAlert: alert });
-  },
-
+  setActiveAlert: (alert: Alert | null) => set({ activeAlert: alert }),
   incrementUnreadCount: () =>
     set((state) => ({ unreadAlertCount: state.unreadAlertCount + 1 })),
-  
-
   clearActiveAlert: () => set({ activeAlert: null }),
+  setLastReadingAt: (time: string) => {
+    console.log("vitalsStore: last reading at:", time);
+    set({ lastReadingAt: time });
+   
+  },
 }));
 
 export default useVitalsStore;
