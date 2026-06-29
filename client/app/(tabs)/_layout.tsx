@@ -31,9 +31,7 @@ function TabIcon({ name, focused, color, size, badgeCount }: TabIconProps) {
      <View style={{ alignItems: "center", justifyContent: "center" }}>
       <Ionicons
         name={focused ? name : `${name}-outline` as IoniconName}
-        // when focused: filled icon (e.g. "home")
-        // when not focused: outline icon (e.g. "home-outline")
-        // this is a standard iOS/Android pattern
+      
         size={size}
         color={color}
       />

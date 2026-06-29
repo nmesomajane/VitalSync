@@ -2,9 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "ax
 import * as SecureStore from "expo-secure-store";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.121.129.221:3000";
-// ↑ THIS is most likely your problem
-// replace x with your computer's actual IP
-// run "ipconfig" on Windows → look for IPv4 Address under WiFi
+
 
 console.log("🔌 API_URL is:", API_URL);
 
@@ -29,23 +27,23 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ ${response.status} from ${response.config.url}`);
+    console.log(` ${response.status} from ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {
-    // ── IMPROVED ERROR LOGGING ────────────────────────────
+    //  IMPROVED ERROR LOGGING 
     if (error.response) {
       // server responded with an error status (4xx, 5xx)
-      console.error("❌ Server error:", {
+      console.error(" Server error:", {
         status: error.response.status,
         message: (error.response.data as any)?.message,
         url: error.config?.url,
       });
     } else if (error.request) {
       // request was made but no response received
-      // THIS is what "Signup error: {}" means
-      console.error("❌ No response from server — connection failed");
-      console.error("❌ Check that:");
+      
+      console.error(" No response from server — connection failed");
+      console.error(" Check that:");
       console.error("   1. Backend server is running on port 3000");
       console.error("   2. API_URL is your computer WiFi IP not localhost");
       console.error("   3. Both phone and computer on same WiFi");

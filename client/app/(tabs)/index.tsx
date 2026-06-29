@@ -20,7 +20,7 @@ import { Colors } from "../../constants/colors";
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { latestVitals, isConnected, lastReadingAt } = useVitalsStore();
-  // ↑ added lastReadingAt
+
   const { isLoading } = useVitals();
   useSocket();
 
@@ -176,7 +176,7 @@ export default function DashboardScreen() {
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
 
-            {/* UPDATED connection indicator  */}
+            {/*  connection indicator  */}
             <View style={{
               flexDirection: "row",
               alignItems: "center",
