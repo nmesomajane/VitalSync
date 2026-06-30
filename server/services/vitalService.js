@@ -290,40 +290,146 @@ class VitalsService {
     return parseFloat((sum / valid.length).toFixed(1));
   }
 
+
+
+ 
+
+  //  ADD THIS METHOD 
   async getLatestECG(userId) {
     const reading = await vitalsRepository.findLatestECG(userId);
 
     if (!reading || !reading.ecgData) return null;
 
     const analysis = this.analyseECG(reading.ecgData);
+    // calling this.analyseECG — must exist as a method below
 
     const formattedWaveform = reading.ecgData.map((value, index) => ({
       x: index,
-
       y: value,
     }));
 
     return {
       waveform: formattedWaveform,
-
       rawData: reading.ecgData,
-
       analysis: {
         rhythmStatus: analysis.status,
-
         derivedHeartRate: analysis.derivedHeartRate,
-
         hrv: analysis.hrv,
         peakCount: analysis.peakCount,
         rrIntervals: analysis.rrIntervals,
         message: analysis.message,
       },
-
       recordedAt: reading.createdAt,
       hasAnomaly: reading.hasAnomaly,
-      anomalydetails: reading.anomalyDetails,
+      anomalyDetails: reading.anomalyDetails,
+      // fixed casing — was "anomalydetails" lowercase d
+      // must match exactly what the frontend ECGData interface expects
     };
   }
+
+  //  ADD THIS METHOD - analyses the ECG waveform 
+  analyseECG(ecgData) {
+   
+
+    if (!ecgData || !Array.isArray(ecgData) || ecgData.length === 0) {
+      return {
+        status: "insufficient_data",
+        message: "Not enough ECG data",
+        derivedHeartRate: null,
+        hrv: null,
+        peakCount: 0,
+        rrIntervals: [],
+      };
+    }
+
+    // find all peaks (heartbeats) in the waveform
+    const peaks = this.findPeaks(ecgData);
+   
+
+    if (peaks.length < 2) {
+      return {
+        status: "insufficient_peaks",
+        message: "Could not detect enough heartbeats",
+        derivedHeartRate: null,
+        hrv: null,
+        peakCount: peaks.length,
+        rrIntervals: [],
+      };
+    }
+
+    // calculate RR intervals — time between consecutive peaks
+    const samplingInterval = 4;
+   
+
+    const rrIntervals = [];
+    for (let i = 1; i < peaks.length; i++) {
+      const rr = (peaks[i] - peaks[i - 1]) * samplingInterval;
+      rrIntervals.push(rr);
+    }
+
+    // derive heart rate from average RR interval
+    const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
+    const derivedHeartRate = Math.round(60000 / avgRR);
+   
+
+    const rrVariance = rrIntervals.reduce((sum, rr) => {
+      return sum + Math.pow(rr - avgRR, 2);
+    }, 0) / rrIntervals.length;
+    const hrv = Math.round(Math.sqrt(rrVariance));
+ 
+
+    // classify rhythm based on HRV
+    let status;
+    let message;
+
+    if (hrv < 20) {
+      status = "regular";
+      message = "Normal sinus rhythm detected";
+    } else if (hrv < 50) {
+      status = "slightly_irregular";
+      message = "Minor rhythm variation — continue monitoring";
+    } else {
+      status = "irregular";
+      message = "Irregular rhythm detected — consult a doctor";
+    }
+
+    return {
+      status,
+      derivedHeartRate,
+      hrv,
+      peakCount: peaks.length,
+      rrIntervals,
+      message,
+    };
+  }
+
+  //  ADD THIS METHOD - finds peaks in the waveform 
+  findPeaks(ecgData) {
+    const peaks = [];
+    const maxValue = Math.max(...ecgData);
+    const threshold = maxValue * 0.5;
+   
+
+    for (let i = 1; i < ecgData.length - 1; i++) {
+      if (
+        ecgData[i] > ecgData[i - 1] &&
+      
+        ecgData[i] > ecgData[i + 1] &&
+      
+        ecgData[i] > threshold
+      
+      ) {
+        peaks.push(i);
+        
+      }
+    }
+
+    return peaks;
+  }
+
+ 
+
+
 }
 
 export default new VitalsService();
