@@ -93,6 +93,23 @@ async findDailyAverages(userId, days = 30) {
     return anomalies;
   }
 
+  async findLatestECG(userId) {
+  const reading = await Vitals.findOne({
+    where: {
+      userId,
+      ecgData: { [Op.ne]: null },
+    
+    },
+    order: [["createdAt", "DESC"]],
+   
+    attributes: ["id", "ecgData", "hasAnomaly", "anomalydetails", "createdAt"],
+  
+  });
+
+  console.log("findLatestECG result:", reading ? "found" : "not found");
+  return reading;
+}
+
 }
 
 export default new VitalsRepository();

@@ -54,7 +54,7 @@ const HEALTH_SCORE_WEIGHTS = {
 };
 
 class VitalsService {
-  //  STEP 3C — Check thresholds
+  //   Check thresholds
 
   checkThresholds(readings) {
     const anomalies = {};
@@ -86,7 +86,7 @@ class VitalsService {
     return anomalies;
   }
 
-  // STEP 3D — Calculate health score
+  // Calculate health score
 
   calculateHealthScore(readings) {
     let score = 0;
@@ -118,7 +118,7 @@ class VitalsService {
     return Math.round(Math.min(100, Math.max(0, finalScore)));
   }
 
-  // STEP 3E — Record a vital reading
+  // Record a vital reading
 
   async recordVital({
     userId,
@@ -151,7 +151,7 @@ class VitalsService {
       roomHumidity,
       ecgData,
       hasAnomaly,
-      anomalyDetails: hasAnomaly ? anomalies : null,
+      anomalydetails: hasAnomaly ? anomalies : null,
     });
     const alerts = await alertService.checkAndCreateAlerts({
       userId,
@@ -195,7 +195,7 @@ class VitalsService {
     return payload;
   }
 
-  //  STEP 3F — Get latest vitals
+  //   Get latest vitals
 
   async getLatestVitals(userId) {
     const vitals = await vitalsRepository.findLatestByUserId(userId);
@@ -217,24 +217,9 @@ class VitalsService {
     };
   }
 
-  //STEP 3G — Get history
 
-  async getVitalsHistory(userId, days = 30) {
-    const vitals = await vitalsRepository.findHistoryByUserId(userId, days);
 
-    if (!vitals.length) return [];
-
-    const averages = this.calculateAverages(vitals);
-
-    return {
-      readings: vitals,
-
-      averages,
-
-      totalReadings: vitals.length,
-      anomalyCount: vitals.filter((v) => v.hasAnomaly).length,
-    };
-  }
+ 
 
   //  STEP 3H — Calculate averages
 
@@ -336,7 +321,7 @@ class VitalsService {
 
       recordedAt: reading.createdAt,
       hasAnomaly: reading.hasAnomaly,
-      anomalyDetails: reading.anomalyDetails,
+      anomalydetails: reading.anomalyDetails,
     };
   }
 }
