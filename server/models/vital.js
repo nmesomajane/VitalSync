@@ -46,6 +46,20 @@ anomalydetails: {
   type: DataTypes.JSONB,
   allowNull: true,
 },
+// in models/vitals.js — add these fields
+tinyMLClassification: {
+  type: DataTypes.ENUM(
+    "normal_sinus",
+    "atrial_fibrillation",
+    "ventricular_premature_contraction",
+    "bradycardia",
+    "tachycardia"
+  ),
+  allowNull: true,
+  // null when hardware not sending ML results yet
+},
+
+
 }, { timestamps: true });
 
 export default Vitals;

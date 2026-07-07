@@ -7,7 +7,7 @@ import asyncHandler from '../utilis/asyncHandler.js';
 
 export const recordVital = asyncHandler(async (req, res) => {
   const { id: userId } = req.user;
-  const { heartRate, spO2, bodyTemperature, respiratoryRate, roomHumidity, ecgData } = req.body;
+  const { heartRate, spO2, bodyTemperature, respiratoryRate, roomHumidity, ecgData, tinyMLClassification } = req.body;
 
   const io = req.app.get("io");
   
@@ -17,7 +17,7 @@ export const recordVital = asyncHandler(async (req, res) => {
 
   const result = await vitalsService.recordVital({
     userId, heartRate, spO2, bodyTemperature,
-    respiratoryRate, roomHumidity, ecgData,
+    respiratoryRate, roomHumidity, ecgData,  tinyMLClassification,
     io,
   
   });
