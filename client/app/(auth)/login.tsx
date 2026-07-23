@@ -1,17 +1,24 @@
 import { useState } from "react";
 import {
-  View,Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, Alert,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import api from "../../src/services/api";
 import useAuthStore from "../../src/store/authStore";
+import { Ionicons } from "@expo/vector-icons";
+
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
 import React from "react";
-
 
 // required for Google OAuth to work on Android
 
@@ -25,19 +32,18 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors<LoginPayload>>({});
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const { setUser, setToken } = useAuthStore();
 
-  //  Google OAuth setup 
+  //  Google OAuth setup
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ,
-    //  Client ID 
- 
-
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    //  Client ID
   });
 
   // useEffect that fires when Google returns a response
-  // must be at component top level — not inside a function
+
   const handleGoogleResponse = async () => {
     if (response?.type === "success") {
       // "success" = user approved and Google returned a token
@@ -47,18 +53,19 @@ export default function LoginScreen() {
       setGoogleLoading(true);
 
       try {
-      
-        const result = await api.post<AuthResponse>("/api/v1/auth/google/token", {
-          accessToken: authentication?.accessToken,
-          // your backend uses this to verify with Google
-          // and create/find the user in your database
-        });
+        const result = await api.post<AuthResponse>(
+          "/api/v1/auth/google/token",
+          {
+            accessToken: authentication?.accessToken,
+            // your backend uses this to verify with Google
+            // and create/find the user in your database
+          },
+        );
 
         setUser(result.data.user);
         await setToken(result.data.token);
         console.log("Google login complete — navigating to tabs");
         router.replace("/(tabs)/index");
-
       } catch (error: any) {
         console.error("Google login error:", error.response?.data);
         Alert.alert("Google Sign-In Failed", "Please try again.");
@@ -75,7 +82,6 @@ export default function LoginScreen() {
     handleGoogleResponse();
   });
 
- 
   const validate = (): boolean => {
     const newErrors: FormErrors<LoginPayload> = {};
 
@@ -95,7 +101,6 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
- 
   const handleLogin = async (): Promise<void> => {
     console.log("handleLogin called:", email);
     if (!validate()) return;
@@ -114,12 +119,10 @@ export default function LoginScreen() {
       await setToken(response.data.token);
 
       router.replace("/(tabs)/index");
-      
-
     } catch (error: any) {
-  console.log("Login error:", error?.message);
-  console.log("Full error:", JSON.stringify(error, null, 2));
-} finally {
+      console.log("Login error:", error?.message);
+      console.log("Full error:", JSON.stringify(error, null, 2));
+    } finally {
       setIsLoading(false);
     }
   };
@@ -129,13 +132,12 @@ export default function LoginScreen() {
       className="flex-1 bg-dark"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         className="px-6"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-
         {/* Header */}
         <View className="items-center mt-20 mb-12">
           <Text className="text-4xl mb-3">❤️</Text>
@@ -146,8 +148,6 @@ export default function LoginScreen() {
             Monitor your health in real time
           </Text>
         </View>
-
-        
 
         {/* Email field */}
         <View className="mb-4">
@@ -177,27 +177,83 @@ export default function LoginScreen() {
         </View>
 
         {/* Password field */}
-        <View className="mb-8">
-          <Text className="text-xs font-bold text-muted tracking-widest uppercase mb-2">
+        {/* Password field */}
+        <View style={{ marginBottom: 32 }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: "#64748b",
+              letterSpacing: 1,
+              marginBottom: 8,
+              textTransform: "uppercase",
+            }}
+          >
             Password
           </Text>
-          <TextInput
-            className={`bg-card rounded-xl px-4 py-4 text-white text-base border ${
-              errors.password ? "border-primary" : "border-border"
-            }`}
-            placeholder="••••••••"
-            placeholderTextColor="#475569"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (errors.password) setErrors((p) => ({ ...p, password: undefined }));
-            }}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+
+          {/* Wrapper View — positions input and icon together */}
+          <View style={{ position: "relative" }}>
+            <TextInput
+              style={{
+                backgroundColor: "#0f1923",
+                borderWidth: 1,
+                borderColor: errors.password ? "#e94560" : "#1e293b",
+                borderRadius: 12,
+                padding: 14,
+                paddingRight: 48,
+                // ↑ paddingRight: 48 makes room for the eye icon
+                // without this the text types underneath the icon
+                fontSize: 15,
+                color: "#f1f5f9",
+              }}
+              placeholder="••••••••"
+              placeholderTextColor="#475569"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errors.password)
+                  setErrors((p) => ({ ...p, password: undefined }));
+              }}
+              secureTextEntry={!showPassword}
+              // secureTextEntry controls visibility
+              // false = visible, true = hidden (dots)
+              // !showPassword flips it correctly:
+              //   showPassword false → secureTextEntry true  → hidden
+              //   showPassword true  → secureTextEntry false → visible
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {/* Eye icon button — positioned inside the input on the right */}
+            <TouchableOpacity
+              onPress={() => {
+                console.log("Password visibility toggled:", !showPassword);
+                setShowPassword((prev) => !prev);
+                // toggle between true and false on every press
+              }}
+              style={{
+                position: "absolute",
+                right: 14,
+                top: 0,
+                bottom: 0,
+                justifyContent: "center",
+                padding: 4,
+              }}
+              activeOpacity={0.6}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#475569"
+              />
+            </TouchableOpacity>
+          </View>
+
           {errors.password && (
-            <Text className="text-primary text-xs mt-1">{errors.password}</Text>
+            <Text style={{ color: "#e94560", fontSize: 12, marginTop: 5 }}>
+              {errors.password}
+            </Text>
           )}
         </View>
 
@@ -232,11 +288,8 @@ export default function LoginScreen() {
           onPress={() => {
             console.log("Google sign-in tapped");
             promptAsync();
-            // promptAsync() opens the Google consent screen
-            // response is handled by the useEffect above
           }}
           disabled={!request || googleLoading}
-          // !request = Google OAuth hasn't finished loading yet
           activeOpacity={0.8}
         >
           {googleLoading ? (
@@ -266,7 +319,6 @@ export default function LoginScreen() {
             <Text className="text-blue-400 font-bold">Create one</Text>
           </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );

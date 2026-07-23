@@ -1,13 +1,21 @@
 import { useState, useCallback } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, Alert,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import api from "../../src/services/api";
 import useAuthStore from "../../src/store/authStore";
 import { AuthResponse, FormErrors } from "../../src/types";
+
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 
 interface FormState {
@@ -19,12 +27,6 @@ interface FormState {
   gender: "male" | "female" | "other" | "";
 }
 
-// ── Field component OUTSIDE SignupScreen ──────────────────────
-// this is the critical fix — defined outside means it's created
-// ONCE when the file loads, not on every keystroke
-// React can now reuse the same component instance between renders
-// and the keyboard stays open
-
 interface FieldProps {
   label: string;
   value: string;
@@ -34,42 +36,82 @@ interface FieldProps {
   keyboard?: "default" | "email-address" | "numeric";
   secure?: boolean;
   caps?: "none" | "words" | "sentences" | "characters";
+
+  showPassword?: boolean;
+  onTogglePassword?: () => void;
 }
 
 const Field = ({
-  label, value, onChangeText, placeholder,
-  error, keyboard = "default",
-  secure = false, caps = "words",
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  error,
+  keyboard = "default",
+  secure = false,
+  caps = "words",
+  showPassword = false,
+  onTogglePassword,
 }: FieldProps) => (
-  // notice: no access to "form" state or "errors" directly
-  // everything it needs is passed as props from SignupScreen
-  // this makes it a pure presentational component
   <View style={{ marginBottom: 16 }}>
-    <Text style={{
-      fontSize: 11, fontWeight: "700", color: "#64748b",
-      letterSpacing: 1, marginBottom: 8, textTransform: "uppercase",
-    }}>
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: "700",
+        color: "#64748b",
+        letterSpacing: 1,
+        marginBottom: 8,
+        textTransform: "uppercase",
+      }}
+    >
       {label}
     </Text>
-    <TextInput
-      style={{
-        backgroundColor: "#0f1923",
-        borderWidth: 1,
-        borderColor: error ? "#e94560" : "#1e293b",
-        borderRadius: 12,
-        padding: 14,
-        fontSize: 15,
-        color: "#f1f5f9",
-      }}
-      placeholder={placeholder}
-      placeholderTextColor="#475569"
-      value={value}
-      onChangeText={onChangeText}
-      keyboardType={keyboard}
-      secureTextEntry={secure}
-      autoCapitalize={caps}
-      autoCorrect={false}
-    />
+
+    {/* Wrapper */}
+    <View style={{ position: "relative" }}>
+      <TextInput
+        style={{
+          backgroundColor: "#0f1923",
+          borderWidth: 1,
+          borderColor: error ? "#e94560" : "#1e293b",
+          borderRadius: 12,
+          padding: 14,
+          paddingRight: secure ? 48 : 14, // Make room for eye icon
+          fontSize: 15,
+          color: "#f1f5f9",
+        }}
+        placeholder={placeholder}
+        placeholderTextColor="#475569"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboard}
+        secureTextEntry={secure && !showPassword}
+        autoCapitalize={caps}
+        autoCorrect={false}
+      />
+
+      {secure && (
+        <TouchableOpacity
+          onPress={onTogglePassword}
+          style={{
+            position: "absolute",
+            right: 14,
+            top: 0,
+            bottom: 0,
+            justifyContent: "center",
+            padding: 4,
+          }}
+          activeOpacity={0.6}
+        >
+          <Ionicons
+            name={showPassword ? "eye-off-outline" : "eye-outline"}
+            size={20}
+            color="#475569"
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+
     {error && (
       <Text style={{ color: "#e94560", fontSize: 12, marginTop: 5 }}>
         {error}
@@ -78,49 +120,49 @@ const Field = ({
   </View>
 );
 
-// ── SignupScreen ──────────────────────────────────────────────
+//  SignupScreen
 export default function SignupScreen() {
   console.log("SignupScreen rendered");
 
   const [form, setForm] = useState<FormState>({
-    name: "", email: "", password: "",
-    confirmPassword: "", age: "", gender: "",
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    age: "",
+    gender: "",
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors<FormState>>({});
   const { setUser, setToken } = useAuthStore();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
 
-  // useCallback prevents updateField from being recreated on every render
-  // without useCallback, a new function reference is created each render
-  // which could still cause subtle re-render issues
-  const updateField = useCallback(<K extends keyof FormState>(
-    field: K,
-    value: FormState[K]
-  ) => {
-    console.log(`Field "${field}" updated:`, value);
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
-  }, [errors]);
+  const updateField = useCallback(
+    <K extends keyof FormState>(field: K, value: FormState[K]) => {
+      console.log(`Field "${field}" updated:`, value);
+      setForm((prev) => ({ ...prev, [field]: value }));
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    },
+    [errors],
+  );
 
   const validate = (): boolean => {
     const e: FormErrors<FormState> = {};
     if (!form.name.trim() || form.name.trim().length < 2)
       e.name = "Name must be at least 2 characters";
-    if (!form.email.trim())
-      e.email = "Email is required";
+    if (!form.email.trim()) e.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       e.email = "Invalid email format";
-    if (!form.password)
-      e.password = "Password is required";
-    else if (form.password.length < 6)
-      e.password = "Minimum 6 characters";
+    if (!form.password) e.password = "Password is required";
+    else if (form.password.length < 6) e.password = "Minimum 6 characters";
     if (form.password !== form.confirmPassword)
       e.confirmPassword = "Passwords do not match";
-    if (form.age && isNaN(Number(form.age)))
-      e.age = "Enter a valid age";
+    if (form.age && isNaN(Number(form.age))) e.age = "Enter a valid age";
     console.log("Signup validation:", e);
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -146,7 +188,6 @@ export default function SignupScreen() {
 
       console.log("Navigating to tabs");
       router.replace("/(tabs)");
-
     } catch (error: any) {
       console.error("Signup error:", error.response?.data ?? error.message);
 
@@ -154,13 +195,13 @@ export default function SignupScreen() {
         Alert.alert(
           "Connection Failed",
           "Cannot reach server. Check your WiFi and API_URL.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       } else {
         Alert.alert(
           "Signup Failed",
           error.response?.data?.message ?? "Something went wrong.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     } finally {
@@ -168,7 +209,11 @@ export default function SignupScreen() {
     }
   };
 
-  const genders: Array<"male" | "female" | "other"> = ["male", "female", "other"];
+  const genders: Array<"male" | "female" | "other"> = [
+    "male",
+    "female",
+    "other",
+  ];
 
   return (
     <KeyboardAvoidingView
@@ -185,7 +230,9 @@ export default function SignupScreen() {
           style={{ marginTop: 52, marginBottom: 32, alignSelf: "flex-start" }}
           onPress={() => router.back()}
         >
-          <Text style={{ color: "#64748b", fontSize: 14 }}>← Back to login</Text>
+          <Text style={{ color: "#64748b", fontSize: 14 }}>
+            ← Back to login
+          </Text>
         </TouchableOpacity>
 
         {/* Header */}
@@ -220,9 +267,11 @@ export default function SignupScreen() {
           value={form.password}
           onChangeText={(t) => updateField("password", t)}
           placeholder="••••••••"
-          secure
           caps="none"
           error={errors.password}
+          secure
+          showPassword={showPassword}
+          onTogglePassword={() => setShowPassword((prev) => !prev)}
         />
         <Field
           label="Confirm Password"
@@ -230,6 +279,8 @@ export default function SignupScreen() {
           onChangeText={(t) => updateField("confirmPassword", t)}
           placeholder="••••••••"
           secure
+          showPassword={showConfirmPassword}
+          onTogglePassword={() => setShowConfirmPassword((prev) => !prev)}
           caps="none"
           error={errors.confirmPassword}
         />
@@ -245,10 +296,16 @@ export default function SignupScreen() {
 
         {/* Gender */}
         <View style={{ marginBottom: 32 }}>
-          <Text style={{
-            fontSize: 11, fontWeight: "700", color: "#64748b",
-            letterSpacing: 1, marginBottom: 8, textTransform: "uppercase",
-          }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: "#64748b",
+              letterSpacing: 1,
+              marginBottom: 8,
+              textTransform: "uppercase",
+            }}
+          >
             Gender (optional)
           </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -257,17 +314,23 @@ export default function SignupScreen() {
                 key={g}
                 onPress={() => updateField("gender", g)}
                 style={{
-                  flex: 1, padding: 12, borderRadius: 10,
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 10,
                   alignItems: "center",
                   backgroundColor: form.gender === g ? "#e9456020" : "#0f1923",
                   borderWidth: 1,
                   borderColor: form.gender === g ? "#e94560" : "#1e293b",
                 }}
               >
-                <Text style={{
-                  color: form.gender === g ? "#e94560" : "#64748b",
-                  fontSize: 12, fontWeight: "600", textTransform: "capitalize",
-                }}>
+                <Text
+                  style={{
+                    color: form.gender === g ? "#e94560" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: "600",
+                    textTransform: "capitalize",
+                  }}
+                >
                   {g}
                 </Text>
               </TouchableOpacity>
@@ -279,8 +342,10 @@ export default function SignupScreen() {
         <TouchableOpacity
           style={{
             backgroundColor: isLoading ? "#7f1d35" : "#e94560",
-            borderRadius: 14, padding: 16,
-            alignItems: "center", marginBottom: 16,
+            borderRadius: 14,
+            padding: 16,
+            alignItems: "center",
+            marginBottom: 16,
           }}
           onPress={handleSignup}
           disabled={isLoading}
@@ -304,7 +369,6 @@ export default function SignupScreen() {
             <Text style={{ color: "#4f8ef7", fontWeight: "700" }}>Sign in</Text>
           </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
