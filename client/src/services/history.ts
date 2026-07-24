@@ -105,3 +105,14 @@ export const fetchCaregivers = async () => {
   const response = await api.get("/api/v1/caregivers");
   return response.data.data ?? [];
 };
+
+
+
+export const generatePublicShareToken = async (): Promise<{
+  shareUrl: string;
+  expiresAt: string;
+}> => {
+
+  const response = await api.post("/api/v1/share/generate-public");
+  return response.data.data;
+};

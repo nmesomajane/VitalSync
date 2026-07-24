@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,8 @@ import SummaryCard from "../../components/SummaryCard";
 import AlertListItem from "../../components/AlertListItem";
 import { Colors } from "../../constants/colors";
 import useVitalsStore from "../../src/store/vitalsStore";
+import { Share } from "react-native";
+import { generatePublicShareToken } from "../../src/services/history";
 
 // time range options for the toggle buttons at the top
 const TIME_RANGES: { label: string; days: number }[] = [
@@ -26,7 +29,34 @@ const TIME_RANGES: { label: string; days: number }[] = [
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const [shareLoading, setShareLoading] = useState(false);
 
+const handleShare = async () => {
+  setShareLoading(true);
+  try {
+    const { shareUrl, expiresAt } = await generatePublicShareToken();
+    // one API call — no caregiver needed
+
+    await Share.share({
+      title: "My VitalSync Health Data",
+      message:
+        `View my live health vitals on VitalSync:\n\n${shareUrl}\n\n` +
+        `This link expires on ${new Date(expiresAt).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}.\n\nShared from VitalSync Health Monitoring App.`,
+     
+    });
+
+    console.log("Share sheet opened successfully");
+  } catch (err) {
+    console.error("Share failed:", err);
+    Alert.alert("Share Failed", "Could not generate share link. Check your connection.");
+  } finally {
+    setShareLoading(false);
+  }
+};
 
   const {
     chartData,
@@ -43,16 +73,13 @@ export default function HistoryScreen() {
     refresh,
   } = useHistory();
 
-
   const { unreadAlertCount } = useVitalsStore();
-  
 
   const [activeTab, setActiveTab] = useState<"vitals" | "alerts">("vitals");
- 
 
   console.log("HistoryScreen rendered — activeTab:", activeTab);
 
-  //  loading state 
+  //  loading state
   if (isLoading) {
     return (
       <View
@@ -73,7 +100,7 @@ export default function HistoryScreen() {
     );
   }
 
-  //  error state 
+  //  error state
   if (error) {
     return (
       <View
@@ -85,7 +112,11 @@ export default function HistoryScreen() {
           padding: 24,
         }}
       >
-        <Ionicons name="cloud-offline-outline" size={48} color={Colors.textMuted} />
+        <Ionicons
+          name="cloud-offline-outline"
+          size={48}
+          color={Colors.textMuted}
+        />
         <Text
           style={{
             color: Colors.textPrimary,
@@ -133,39 +164,67 @@ export default function HistoryScreen() {
             onRefresh={refresh}
             tintColor={Colors.primary}
           />
-        
         }
       >
-
         {/*  Header  */}
         <View
           style={{
             paddingTop: insets.top + 12,
             paddingHorizontal: 20,
             paddingBottom: 16,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
           }}
         >
-          <Text
+          <View>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "700",
+                color: Colors.textPrimary,
+              }}
+            >
+              Health History
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: Colors.textSecondary,
+                marginTop: 2,
+              }}
+            >
+              {summary
+                ? `${summary.daysAnalysed} days · ${summary.totalReadings.toLocaleString()} readings`
+                : "No data yet"}
+            </Text>
+          </View>
+
+          {/* Share button */}
+          <TouchableOpacity
+            onPress={handleShare}
+            disabled={shareLoading}
             style={{
-              fontSize: 22,
-              fontWeight: "700",
-              color: Colors.textPrimary,
+              width: 38,
+              height: 38,
+              backgroundColor: Colors.card,
+              borderRadius: 11,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: Colors.cardBorder,
             }}
           >
-            Health History
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              color: Colors.textSecondary,
-              marginTop: 2,
-            }}
-          >
-            {summary
-              ? `${summary.daysAnalysed} days · ${summary.totalReadings.toLocaleString()} readings`
-              : "No data yet"}
-         
-          </Text>
+            {shareLoading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Ionicons
+                name="share-outline"
+                size={18}
+                color={Colors.textSecondary}
+              />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Tab switcher: Vitals / Alerts*/}
@@ -184,7 +243,6 @@ export default function HistoryScreen() {
           {(["vitals", "alerts"] as const).map((tab) => {
             const isActive = activeTab === tab;
             const showBadge = tab === "alerts" && unreadAlertCount > 0;
-          
 
             return (
               <TouchableOpacity
@@ -200,7 +258,7 @@ export default function HistoryScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: isActive ? Colors.primary : "transparent",
-                 
+
                   flexDirection: "row",
                   gap: 6,
                 }}
@@ -274,9 +332,7 @@ export default function HistoryScreen() {
                       paddingHorizontal: 16,
                       paddingVertical: 7,
                       borderRadius: 8,
-                      backgroundColor: isActive
-                        ? Colors.primary
-                        : Colors.card,
+                      backgroundColor: isActive ? Colors.primary : Colors.card,
                       borderWidth: 1,
                       borderColor: isActive
                         ? Colors.primary
@@ -393,7 +449,6 @@ export default function HistoryScreen() {
         {/* ── ALERTS TAB ────────────────────────────────────── */}
         {activeTab === "alerts" && (
           <View style={{ paddingHorizontal: 16 }}>
-
             {alerts.length === 0 ? (
               // empty state — no alerts recorded
               <View
@@ -443,10 +498,8 @@ export default function HistoryScreen() {
                 />
               ))
             )}
-
           </View>
         )}
-
       </ScrollView>
     </View>
   );

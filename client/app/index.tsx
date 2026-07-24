@@ -27,12 +27,11 @@ export default function Index() {
     return <Redirect href="/(tabs)/index" />;
     // Redirect renders nothing visible
     // it immediately navigates to /(tabs)
-    // the user never sees this screen — it's instant
+   
   }
 
   console.log("index.tsx: no token — sending to login");
   return <Redirect href="/(auth)/login" />;
   // sends to login screen
-  // after login succeeds, router.replace("/(tabs)") in login.tsx
-  // takes over and sends them to the main app
+
 }
