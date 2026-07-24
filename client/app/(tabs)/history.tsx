@@ -200,8 +200,7 @@ export default function HistoryScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: isActive ? Colors.primary : "transparent",
-                  // active tab has primary blue background
-                  // inactive tab is transparent — shows card background
+                 
                   flexDirection: "row",
                   gap: 6,
                 }}
@@ -249,7 +248,7 @@ export default function HistoryScreen() {
           })}
         </View>
 
-        {/* ── VITALS TAB ────────────────────────────────────── */}
+        {/* VITALS TAB  */}
         {activeTab === "vitals" && (
           <>
             {/* Time range buttons */}

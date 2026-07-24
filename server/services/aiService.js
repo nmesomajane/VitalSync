@@ -198,6 +198,7 @@ class AIService {
     return `
 You are a clinical health advisor reviewing a patient's wearable health monitoring data.
 
+
 PATIENT DATA SUMMARY (last ${days} days):
 - Average Heart Rate: ${averages.heartRate ?? "unavailable"} bpm
 - Average SpO₂: ${averages.spO2 ?? "unavailable"}%
@@ -213,19 +214,19 @@ PATTERN CLASSIFICATION:
 - Assessment: ${pattern.urgency}
 
 INSTRUCTIONS:
-Based ONLY on the specific data above, provide exactly the following in this format:
+Respond ONLY with this exact format. Do not add headers, asterisks, or extra text.
 
 MEAL PLAN:
-Breakfast: [specific food recommendation with reason tied to the data]
-Lunch: [specific food recommendation with reason tied to the data]
-Dinner: [specific food recommendation with reason tied to the data]
-Snack: [one healthy snack targeting the identified pattern]
+Breakfast: [your recommendation here]
+Lunch: [your recommendation here]
+Dinner: [your recommendation here]
+Snack: [your recommendation here]
 
 DAILY ROUTINE:
-Morning: [specific activity with time, targeting the clinical focus]
-Afternoon: [specific activity with time]
-Evening: [specific activity with time, addressing the pattern]
-Sleep: [specific recommendation for sleep quality]
+Morning: [your recommendation here]
+Afternoon: [your recommendation here]
+Evening: [your recommendation here]
+Sleep: [your recommendation here]
 
 KEY WARNING SIGNS:
 [List 2 specific symptoms to watch for given this patient's pattern]

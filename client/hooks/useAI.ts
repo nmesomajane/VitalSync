@@ -161,12 +161,12 @@ export const useAI = (): AIHookResult => {
   };
 };
 
-// ── Gemini response parser 
 
-export const parseGeminiResponse = (text: string): ParsedSuggestions => {
-  console.log("parseGeminiResponse: parsing response of length:", text.length);
 
-  // default values — used when a section isn't found in the text
+const parseGeminiResponse = (text: string): ParsedSuggestions => {
+  console.log("parseGeminiResponse: raw text:", text.substring(0, 200));
+ 
+
   const defaults: ParsedSuggestions = {
     mealPlan: {
       breakfast: "No recommendation available",
@@ -183,61 +183,136 @@ export const parseGeminiResponse = (text: string): ParsedSuggestions => {
     warnings: [],
   };
 
-  if (!text) return defaults;
+  if (!text || text.trim().length === 0) return defaults;
 
   try {
    
-    const extractLine = (label: string): string => {
-      const regex = new RegExp(`${label}:\\s*(.+?)(?:\\n|$)`, "i");
-    
+    const extractField = (labels: string[]): string => {
+      for (const label of labels) {
+        // try "Label: value on same line"
+        const sameLineRegex = new RegExp(
+          `${label}[:\\s]+([^\\n]+)`,
+          "i"
+          // "i" = case insensitive
+          // [^\\n]+ = everything until newline
+        );
+        const sameLineMatch = text.match(sameLineRegex);
+        if (sameLineMatch?.[1]?.trim()) {
+          return sameLineMatch[1].trim();
+        }
 
-      const match = text.match(regex);
-      return match ? match[1].trim() : "";
-   
+        // try "Label:" followed by content on next line
+        const nextLineRegex = new RegExp(
+          `${label}[:\\s]*\\n+([^\\n]+)`,
+          "i"
+        );
+        const nextLineMatch = text.match(nextLineRegex);
+        if (nextLineMatch?.[1]?.trim()) {
+          return nextLineMatch[1].trim();
+        }
+      }
+      return "";
     };
 
-    const mealPlan = {
-      breakfast: extractLine("Breakfast") || defaults.mealPlan.breakfast,
-      lunch: extractLine("Lunch") || defaults.mealPlan.lunch,
-      dinner: extractLine("Dinner") || defaults.mealPlan.dinner,
-      snack: extractLine("Snack") || defaults.mealPlan.snack,
-    };
-
-    // parse daily routine 
-    const routine = {
-      morning: extractLine("Morning") || defaults.routine.morning,
-      afternoon: extractLine("Afternoon") || defaults.routine.afternoon,
-      evening: extractLine("Evening") || defaults.routine.evening,
-      sleep: extractLine("Sleep") || defaults.routine.sleep,
-    };
-
-    // parse warning signs
-    
-    const warningsSection = text.match(
-      /KEY WARNING SIGNS?:?\s*([\s\S]*?)(?:\n\n|$)/i
-    );
   
+    const breakfast = extractField([
+      "\\*?\\*?Breakfast\\*?\\*?",
+      "breakfast",
+      "Morning meal",
+    ]);
+
+    const lunch = extractField([
+      "\\*?\\*?Lunch\\*?\\*?",
+      "lunch",
+      "Midday meal",
+      "Afternoon meal",
+    ]);
+
+    const dinner = extractField([
+      "\\*?\\*?Dinner\\*?\\*?",
+      "dinner",
+      "Evening meal",
+      "Supper",
+    ]);
+
+    const snack = extractField([
+      "\\*?\\*?Snack\\*?\\*?",
+      "snack",
+      "Healthy snack",
+      "In-between",
+    ]);
+
+    const morning = extractField([
+      "\\*?\\*?Morning\\*?\\*?",
+      "morning",
+      "AM routine",
+      "Wake up",
+    ]);
+
+    const afternoon = extractField([
+      "\\*?\\*?Afternoon\\*?\\*?",
+      "afternoon",
+      "Midday routine",
+    ]);
+
+    const evening = extractField([
+      "\\*?\\*?Evening\\*?\\*?",
+      "evening",
+      "PM routine",
+    ]);
+
+    const sleep = extractField([
+      "\\*?\\*?Sleep\\*?\\*?",
+      "sleep",
+      "Bedtime",
+      "Night routine",
+      "Before bed",
+    ]);
+
+    // extract warnings
+    const warningsSection = text.match(
+      /(?:KEY WARNING|WARNING|WATCH FOR|SIGNS TO WATCH)[^:]*:?\s*([\s\S]*?)(?:\n\n|\n(?=[A-Z])|$)/i
+    );
 
     const warnings: string[] = [];
-    if (warningsSection) {
-      const lines = warningsSection[1]
+    if (warningsSection?.[1]) {
+      warningsSection[1]
         .split("\n")
-        // split the section into individual lines
-        .map((l) => l.replace(/^[-•*]\s*/, "").trim())
-        
-        .filter((l) => l.length > 0);
+        .map((l) => l.replace(/^[-•*\d.]\s*/, "").trim())
+        .filter((l) => l.length > 10)
        
-      warnings.push(...lines);
+        .slice(0, 3)
+        
+        .forEach((w) => warnings.push(w));
     }
 
-    console.log("parseGeminiResponse: parsed successfully");
-    return { mealPlan, routine, warnings };
+    const result: ParsedSuggestions = {
+      mealPlan: {
+        breakfast: breakfast || defaults.mealPlan.breakfast,
+        lunch: lunch || defaults.mealPlan.lunch,
+        dinner: dinner || defaults.mealPlan.dinner,
+        snack: snack || defaults.mealPlan.snack,
+      },
+      routine: {
+        morning: morning || defaults.routine.morning,
+        afternoon: afternoon || defaults.routine.afternoon,
+        evening: evening || defaults.routine.evening,
+        sleep: sleep || defaults.routine.sleep,
+      },
+      warnings,
+    };
+
+    console.log("parseGeminiResponse: result:", {
+      breakfast: result.mealPlan.breakfast.substring(0, 40),
+      morning: result.routine.morning.substring(0, 40),
+      warnings: warnings.length,
+    });
+
+    return result;
 
   } catch (err) {
-    console.error("parseGeminiResponse: parsing failed:", err);
+    console.error("parseGeminiResponse failed:", err);
     return defaults;
-   
   }
 };
-
 export { ParsedSuggestions };
