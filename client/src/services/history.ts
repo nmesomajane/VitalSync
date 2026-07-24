@@ -91,3 +91,17 @@ export const acknowledgeAlert = async (alertId: string): Promise<void> => {
   await api.put(`/api/v1/alerts/${alertId}/acknowledge`);
 
 };
+// add to existing history.ts
+export const generateShareLink = async (
+  caregiverId: string
+): Promise<{ shareUrl: string; expiresAt: string }> => {
+  const response = await api.post(
+    `/api/v1/caregivers/${caregiverId}/share`
+  );
+  return response.data.data;
+};
+
+export const fetchCaregivers = async () => {
+  const response = await api.get("/api/v1/caregivers");
+  return response.data.data ?? [];
+};
