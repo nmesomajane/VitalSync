@@ -414,27 +414,24 @@ export default function ProfileScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // logout 
-  const handleLogout = () => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out of VitalSync?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out",
-          style: "destructive",
-          onPress: async () => {
-            console.log("ProfileScreen: logging out");
-            await SecureStore.deleteItemAsync("vitalsync_token");
-            // remove JWT from device secure storage
-            storeLogout();
-            // clear Zustand store (user + token set to null)
-            // _layout.tsx watches token — when null it redirects to login
-          },
+const handleLogout = () => {
+  Alert.alert(
+    "Log Out",
+    "Are you sure you want to log out of VitalSync?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          console.log("ProfileScreen: user confirmed logout");
+          await storeLogout();
+      
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   // medication handlers 
  const handleAddMedication = async (data: Partial<Medication>) => {

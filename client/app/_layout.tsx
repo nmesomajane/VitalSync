@@ -19,41 +19,29 @@ export default function RootLayout() {
 
   console.log("RootLayout rendered — token present:", !!token);
 
-  useEffect(() => {
+ useEffect(() => {
     const restoreSession = async () => {
-      console.log("_layout: checking SecureStore");
+      console.log("_layout: checking stored token");
       setLoading(true);
 
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
         if (saved) {
+          console.log("_layout: token found — restoring");
           await setToken(saved);
-          try {
-            const res = await api.get("/api/v1/auth/profile");
-            setUser(res.data.user);
-
-            // register for push notifications and send token to backend
-            const pushToken = await registerForPushNotifications();
-            if (pushToken) {
-              await api.post("/api/v1/alerts/fcm-token", {
-                fcmToken: pushToken,
-              });
-              // your backend stores this on the user model
-              // alertService uses it to send push notifications
-              console.log("Push token registered with backend");
-            }
-          } catch (e) {
-            console.log("Session restore failed");
-            await SecureStore.deleteItemAsync("vitalsync_token");
-            await setToken(null);
-          }
+          // setToken updates Zustand → index.tsx sees token → redirects to tabs
+        } else {
+          console.log("_layout: no token — going to login");
+    
         }
       } catch (e) {
-        console.error("_layout: error:", e);
+        console.error("_layout: session restore error:", e);
       } finally {
         setLoading(false);
+       
       }
     };
+
     restoreSession();
   }, []);
 
