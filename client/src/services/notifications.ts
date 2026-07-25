@@ -17,13 +17,12 @@ Notifications.setNotificationHandler({
 
 //  request permission 
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  // notifications require explicit user permission on both iOS and Android
+
   
   if (!Device.isDevice) {
     console.log("Notifications: not a real device — skipping");
     return false;
-    // notifications don't work in emulator for scheduling
-    // works on real physical device
+  
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -93,19 +92,17 @@ export const scheduleMedicationReminder = async (
       data: {
         type: "medication",
         medicationId,
-        // data is available when user taps the notification
-        // use this to navigate to the right screen
+      
       },
       sound: "default",
       categoryIdentifier: "medications",
-      // links to the Android notification channel
+      
     },
     trigger: {
-      type: "daily",
+       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: hours,
       minute: minutes,
-      // fires every day at this time
-      // this is what makes it a daily alarm
+   
     },
   });
 

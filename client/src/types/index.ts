@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-// ── User ──────────────────────────────────────────────────────
+//  User ─
 export interface User {
   id: string;
   name: string;
@@ -14,7 +14,7 @@ export interface User {
   aiDataConsent?: boolean;
 }
 
-// ── Auth ──────────────────────────────────────────────────────
+//  Auth ─
 export interface AuthResponse {
   success: boolean;
   message: string;
@@ -35,7 +35,7 @@ export interface SignupPayload {
   gender?: "male" | "female" | "other";
 }
 
-// ── Vitals ────────────────────────────────────────────────────
+//  Vitals ─
 export interface Vitals {
   id: string;
   userId: string;
@@ -60,7 +60,7 @@ export interface AnomalyDetail {
   message: string;
 }
 
-// ── Alert ─────────────────────────────────────────────────────
+//  Alert 
 export interface Alert {
   id: string;
   userId: string;
@@ -76,7 +76,7 @@ export interface Alert {
   createdAt: string;
 }
 
-// ── Medication ────────────────────────────────────────────────
+//  Medication 
 export interface Medication {
   id: string;
   userId: string;
@@ -92,7 +92,7 @@ export interface Medication {
   color: string | null;
 }
 
-// ── Caregiver ─────────────────────────────────────────────────
+//  Caregiver 
 export interface Caregiver {
   id: string;
   patientId: string;
@@ -105,7 +105,7 @@ export interface Caregiver {
   isActive: boolean;
 }
 
-// ── Navigation ────────────────────────────────────────────────
+// Navigation 
 // defines what parameters each screen accepts
 export type RootStackParamList = {
   Login: undefined;
@@ -121,7 +121,7 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
-// ── API ───────────────────────────────────────────────────────
+// API 
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -129,9 +129,5 @@ export interface ApiResponse<T> {
   count?: number;
 }
 
-// ── Form errors ───────────────────────────────────────────────
+//  Form errors 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
-// Partial = all fields optional
-// Record<K,V> = object with keys of type K and values of type V
-// keyof T = all keys of type T
-// so FormErrors<LoginPayload> = { email?: string, password?: string }
