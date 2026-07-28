@@ -19,7 +19,7 @@ export default function RootLayout() {
 
   console.log("RootLayout rendered — token present:", !!token);
 
- useEffect(() => {
+  useEffect(() => {
     const restoreSession = async () => {
       console.log("_layout: checking stored token");
       setLoading(true);
@@ -29,16 +29,13 @@ export default function RootLayout() {
         if (saved) {
           console.log("_layout: token found — restoring");
           await setToken(saved);
-          // setToken updates Zustand → index.tsx sees token → redirects to tabs
         } else {
           console.log("_layout: no token — going to login");
-    
         }
       } catch (e) {
         console.error("_layout: session restore error:", e);
       } finally {
         setLoading(false);
-       
       }
     };
 
@@ -66,6 +63,9 @@ export default function RootLayout() {
     if (token) {
       console.log("_layout: token detected — pushing to tabs");
       router.replace("/(tabs)");
+    } else {
+      console.log("_layout: no token — pushing to login");
+      router.replace("/(auth)/login");
     }
   }, [token]);
 

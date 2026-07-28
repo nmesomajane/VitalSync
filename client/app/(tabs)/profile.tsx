@@ -130,7 +130,15 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
 
           {/* Name */}
           <View>
-            <Text style={{ fontSize: 11, color: Colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                color: Colors.textMuted,
+                marginBottom: 6,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
               Medication Name
             </Text>
             <TextInput
@@ -152,7 +160,15 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
 
           {/* Dosage */}
           <View>
-            <Text style={{ fontSize: 11, color: Colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                color: Colors.textMuted,
+                marginBottom: 6,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
               Dosage
             </Text>
             <TextInput
@@ -174,7 +190,15 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
 
           {/* Time */}
           <View>
-            <Text style={{ fontSize: 11, color: Colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                color: Colors.textMuted,
+                marginBottom: 6,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
               Reminder Time (HH:MM)
             </Text>
             <TextInput
@@ -225,10 +249,11 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
                 alignItems: "center",
               }}
             >
-              {loading
-                ? <ActivityIndicator color="white" size="small" />
-                : <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
-              }
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -237,14 +262,18 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
   );
 }
 
-//  Add Caregiver Modal 
+//  Add Caregiver Modal
 interface AddCaregiverModalProps {
   visible: boolean;
   onClose: () => void;
   onAdd: (data: Partial<Caregiver>) => Promise<void>;
 }
 
-function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) {
+function AddCaregiverModal({
+  visible,
+  onClose,
+  onAdd,
+}: AddCaregiverModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("");
@@ -258,7 +287,7 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
     if (!phone.startsWith("+")) {
       Alert.alert(
         "Invalid Phone",
-        "Enter phone in international format e.g. +2348012345678"
+        "Enter phone in international format e.g. +2348012345678",
       );
       return;
     }
@@ -277,7 +306,7 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
     } catch (err: any) {
       Alert.alert(
         "Failed",
-        err.response?.data?.message ?? "Could not add caregiver."
+        err.response?.data?.message ?? "Could not add caregiver.",
       );
     } finally {
       setLoading(false);
@@ -286,26 +315,74 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
-        <View style={{
-          backgroundColor: Colors.card,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          padding: 24,
-          gap: 16,
-        }}>
-          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.cardBorder, alignSelf: "center" }} />
-          <Text style={{ fontSize: 18, fontWeight: "700", color: Colors.textPrimary }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "rgba(0,0,0,0.6)",
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: Colors.card,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            gap: 16,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: Colors.cardBorder,
+              alignSelf: "center",
+            }}
+          />
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: Colors.textPrimary,
+            }}
+          >
             Add Caregiver
           </Text>
 
           {[
-            { label: "Full Name", value: name, setter: setName, placeholder: "Dr. Adaeze", keyboard: "default" as const },
-            { label: "Phone (+international)", value: phone, setter: setPhone, placeholder: "+2348012345678", keyboard: "phone-pad" as const },
-            { label: "Relationship (optional)", value: relationship, setter: setRelationship, placeholder: "Doctor, Mother, etc.", keyboard: "default" as const },
+            {
+              label: "Full Name",
+              value: name,
+              setter: setName,
+              placeholder: "Dr. Adaeze",
+              keyboard: "default" as const,
+            },
+            {
+              label: "Phone (+international)",
+              value: phone,
+              setter: setPhone,
+              placeholder: "+2348012345678",
+              keyboard: "phone-pad" as const,
+            },
+            {
+              label: "Relationship (optional)",
+              value: relationship,
+              setter: setRelationship,
+              placeholder: "Doctor, Mother, etc.",
+              keyboard: "default" as const,
+            },
           ].map((field) => (
             <View key={field.label}>
-              <Text style={{ fontSize: 11, color: Colors.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: Colors.textMuted,
+                  marginBottom: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
+              >
                 {field.label}
               </Text>
               <TextInput
@@ -331,19 +408,36 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
           <View style={{ flexDirection: "row", gap: 10 }}>
             <TouchableOpacity
               onPress={onClose}
-              style={{ flex: 1, backgroundColor: Colors.background, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.cardBorder }}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.background,
+                borderRadius: 12,
+                padding: 14,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: Colors.cardBorder,
+              }}
             >
-              <Text style={{ color: Colors.textSecondary, fontWeight: "600" }}>Cancel</Text>
+              <Text style={{ color: Colors.textSecondary, fontWeight: "600" }}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleAdd}
               disabled={loading}
-              style={{ flex: 1, backgroundColor: Colors.primary, borderRadius: 12, padding: 14, alignItems: "center" }}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.primary,
+                borderRadius: 12,
+                padding: 14,
+                alignItems: "center",
+              }}
             >
-              {loading
-                ? <ActivityIndicator color="white" size="small" />
-                : <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
-              }
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -353,18 +447,37 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
 }
 
 // ── Section Header ────────────────────────────────────────────
-function SectionHeader({ icon, title, action }: { icon: string; title: string; action?: { label: string; onPress: () => void } }) {
+function SectionHeader({
+  icon,
+  title,
+  action,
+}: {
+  icon: string;
+  title: string;
+  action?: { label: string; onPress: () => void };
+}) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+      }}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Ionicons name={icon as any} size={16} color={Colors.primary} />
-        <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.textPrimary }}>
+        <Text
+          style={{ fontSize: 14, fontWeight: "700", color: Colors.textPrimary }}
+        >
           {title}
         </Text>
       </View>
       {action && (
         <TouchableOpacity onPress={action.onPress}>
-          <Text style={{ fontSize: 13, color: Colors.primary, fontWeight: "600" }}>
+          <Text
+            style={{ fontSize: 13, color: Colors.primary, fontWeight: "600" }}
+          >
             {action.label}
           </Text>
         </TouchableOpacity>
@@ -373,10 +486,11 @@ function SectionHeader({ icon, title, action }: { icon: string; title: string; a
   );
 }
 
-// Main Profile Screen 
+// Main Profile Screen
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout: storeLogout } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const storeLogout = useAuthStore((state) => state.logout);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -388,7 +502,7 @@ export default function ProfileScreen() {
 
   console.log("ProfileScreen rendered");
 
-  //load all profile data 
+  //load all profile data
   const loadData = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
     else setIsLoading(true);
@@ -411,118 +525,118 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  // logout 
-const handleLogout = () => {
-  Alert.alert(
-    "Log Out",
-    "Are you sure you want to log out of VitalSync?",
-    [
+  // logout
+  const handleLogout = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out of VitalSync?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
         style: "destructive",
         onPress: async () => {
-          console.log("ProfileScreen: user confirmed logout");
           await storeLogout();
-      
+          console.log("Token after logout:", useAuthStore.getState().token);
         },
       },
-    ]
-  );
-};
+    ]);
+  };
 
-  // medication handlers 
- const handleAddMedication = async (data: Partial<Medication>) => {
-  const newMed = await addMedication(data);
-  setMedications((prev) => [...prev, newMed]);
+  // medication handlers
+  const handleAddMedication = async (data: Partial<Medication>) => {
+    const newMed = await addMedication(data);
+    setMedications((prev) => [...prev, newMed]);
 
-  // schedule notification for each scheduled time
-  if (newMed.reminderEnabled && newMed.scheduledTimes.length > 0) {
-    for (const time of newMed.scheduledTimes) {
-      const notifId = await scheduleMedicationReminder(
-        newMed.id,
-        newMed.name,
-        newMed.dosage,
-        time
-      );
-      if (notifId) {
-        // save the notification ID so we can cancel it later
-        await AsyncStorage.setItem(
-          `med_notif_${newMed.id}_${time}`,
-          notifId
-          // key format: "med_notif_[medicationId]_[time]"
-          // e.g. "med_notif_abc123_08:00"
+    // schedule notification for each scheduled time
+    if (newMed.reminderEnabled && newMed.scheduledTimes.length > 0) {
+      for (const time of newMed.scheduledTimes) {
+        const notifId = await scheduleMedicationReminder(
+          newMed.id,
+          newMed.name,
+          newMed.dosage,
+          time,
         );
+        if (notifId) {
+          // save the notification ID so we can cancel it later
+          await AsyncStorage.setItem(
+            `med_notif_${newMed.id}_${time}`,
+            notifId,
+            // key format: "med_notif_[medicationId]_[time]"
+            // e.g. "med_notif_abc123_08:00"
+          );
+        }
       }
+      console.log("Scheduled reminders for:", newMed.name);
     }
-    console.log("Scheduled reminders for:", newMed.name);
-  }
-};
+  };
 
   const handleDeleteMedication = (id: string, name: string) => {
-  Alert.alert("Delete Medication", `Remove ${name}?`, [
-    { text: "Cancel", style: "cancel" },
-    {
-      text: "Delete",
-      style: "destructive",
-      onPress: async () => {
-        const med = medications.find((m) => m.id === id);
-        if (med) {
-          // cancel all scheduled notifications for this medication
-          for (const time of med.scheduledTimes) {
-            const notifId = await AsyncStorage.getItem(
-              `med_notif_${id}_${time}`
-            );
-            if (notifId) {
-              await cancelMedicationReminder(notifId);
-              await AsyncStorage.removeItem(`med_notif_${id}_${time}`);
+    Alert.alert("Delete Medication", `Remove ${name}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const med = medications.find((m) => m.id === id);
+          if (med) {
+            // cancel all scheduled notifications for this medication
+            for (const time of med.scheduledTimes) {
+              const notifId = await AsyncStorage.getItem(
+                `med_notif_${id}_${time}`,
+              );
+              if (notifId) {
+                await cancelMedicationReminder(notifId);
+                await AsyncStorage.removeItem(`med_notif_${id}_${time}`);
+              }
             }
           }
-        }
-        await deleteMedication(id);
-        setMedications((prev) => prev.filter((m) => m.id !== id));
+          await deleteMedication(id);
+          setMedications((prev) => prev.filter((m) => m.id !== id));
+        },
       },
-    },
-  ]);
-};
+    ]);
+  };
 
   const handleToggleReminder = async (id: string) => {
     const updated = await toggleMedicationReminder(id);
-    setMedications((prev) =>
-      prev.map((m) => (m.id === id ? updated : m))
+    setMedications(
+      (prev) => prev.map((m) => (m.id === id ? updated : m)),
       // update just the changed medication in the list
     );
   };
 
-  // caregiver handlers 
+  // caregiver handlers
   const handleAddCaregiver = async (data: Partial<Caregiver>) => {
     const newCaregiver = await addCaregiver(data);
     setCaregivers((prev) => [...prev, newCaregiver]);
   };
 
   const handleRemoveCaregiver = (id: string, name: string) => {
-    Alert.alert(
-      "Remove Caregiver",
-      `Remove ${name} from your caregivers?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await removeCaregiver(id);
-            setCaregivers((prev) => prev.filter((c) => c.id !== id));
-          },
+    Alert.alert("Remove Caregiver", `Remove ${name} from your caregivers?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await removeCaregiver(id);
+          setCaregivers((prev) => prev.filter((c) => c.id !== id));
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -541,30 +655,39 @@ const handleLogout = () => {
           />
         }
       >
-
         {/* Profile Header */}
-        <View style={{
-          paddingTop: insets.top + 12,
-          paddingHorizontal: 20,
-          paddingBottom: 20,
-          alignItems: "center",
-        }}>
-          {/* Avatar */}
-          <View style={{
-            width: 72,
-            height: 72,
-            borderRadius: 22,
-            backgroundColor: Colors.primary,
+        <View
+          style={{
+            paddingTop: insets.top + 12,
+            paddingHorizontal: 20,
+            paddingBottom: 20,
             alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 12,
-          }}>
+          }}
+        >
+          {/* Avatar */}
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 22,
+              backgroundColor: Colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 12,
+            }}
+          >
             <Text style={{ fontSize: 28, fontWeight: "800", color: "white" }}>
               {(profile?.name ?? user?.name ?? "P").charAt(0).toUpperCase()}
             </Text>
           </View>
 
-          <Text style={{ fontSize: 20, fontWeight: "700", color: Colors.textPrimary }}>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "700",
+              color: Colors.textPrimary,
+            }}
+          >
             {profile?.name ?? user?.name ?? "Patient"}
           </Text>
           <Text style={{ fontSize: 13, color: Colors.textMuted, marginTop: 3 }}>
@@ -572,26 +695,70 @@ const handleLogout = () => {
           </Text>
 
           {/* Profile details pills */}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 8,
+              marginTop: 12,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
             {profile?.age && (
-              <View style={{ backgroundColor: Colors.card, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: Colors.cardBorder }}>
-                <Text style={{ fontSize: 12, color: Colors.textSecondary }}>Age {profile.age}</Text>
+              <View
+                style={{
+                  backgroundColor: Colors.card,
+                  borderRadius: 20,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderWidth: 1,
+                  borderColor: Colors.cardBorder,
+                }}
+              >
+                <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
+                  Age {profile.age}
+                </Text>
               </View>
             )}
             {profile?.gender && (
-              <View style={{ backgroundColor: Colors.card, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: Colors.cardBorder }}>
-                <Text style={{ fontSize: 12, color: Colors.textSecondary, textTransform: "capitalize" }}>{profile.gender}</Text>
+              <View
+                style={{
+                  backgroundColor: Colors.card,
+                  borderRadius: 20,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderWidth: 1,
+                  borderColor: Colors.cardBorder,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: Colors.textSecondary,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {profile.gender}
+                </Text>
               </View>
             )}
-            <View style={{
-              backgroundColor: `${Colors.primary}15`,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              borderWidth: 1,
-              borderColor: `${Colors.primary}30`,
-            }}>
-              <Text style={{ fontSize: 12, color: Colors.primary, fontWeight: "600" }}>
+            <View
+              style={{
+                backgroundColor: `${Colors.primary}15`,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderWidth: 1,
+                borderColor: `${Colors.primary}30`,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: Colors.primary,
+                  fontWeight: "600",
+                }}
+              >
                 VitalSync Patient
               </Text>
             </View>
@@ -599,15 +766,17 @@ const handleLogout = () => {
         </View>
 
         {/*  Medication Tracker  */}
-        <View style={{
-          marginHorizontal: 16,
-          marginBottom: 16,
-          backgroundColor: Colors.card,
-          borderRadius: 18,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: Colors.cardBorder,
-        }}>
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: Colors.card,
+            borderRadius: 18,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: Colors.cardBorder,
+          }}
+        >
           <SectionHeader
             icon="medical-outline"
             title="Medication Reminders"
@@ -627,7 +796,11 @@ const handleLogout = () => {
                 gap: 6,
               }}
             >
-              <Ionicons name="add-circle-outline" size={24} color={Colors.textMuted} />
+              <Ionicons
+                name="add-circle-outline"
+                size={24}
+                color={Colors.textMuted}
+              />
               <Text style={{ fontSize: 13, color: Colors.textMuted }}>
                 No medications added yet
               </Text>
@@ -649,24 +822,38 @@ const handleLogout = () => {
                 }}
               >
                 {/* Medication icon */}
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 11,
-                  backgroundColor: `${Colors.primary}15`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 11,
+                    backgroundColor: `${Colors.primary}15`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
                   <Ionicons name="medical" size={18} color={Colors.primary} />
                 </View>
 
                 {/* Medication info */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: Colors.textPrimary,
+                    }}
+                  >
                     {med.name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: Colors.textMuted, marginTop: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: Colors.textMuted,
+                      marginTop: 1,
+                    }}
+                  >
                     {med.dosage} · {med.scheduledTimes.join(", ")}
                   </Text>
                 </View>
@@ -675,9 +862,13 @@ const handleLogout = () => {
                 <Switch
                   value={med.reminderEnabled}
                   onValueChange={() => handleToggleReminder(med.id)}
-                  trackColor={{ false: Colors.cardBorder, true: `${Colors.primary}60` }}
-                  thumbColor={med.reminderEnabled ? Colors.primary : Colors.textMuted}
-                
+                  trackColor={{
+                    false: Colors.cardBorder,
+                    true: `${Colors.primary}60`,
+                  }}
+                  thumbColor={
+                    med.reminderEnabled ? Colors.primary : Colors.textMuted
+                  }
                 />
 
                 {/* Delete */}
@@ -685,7 +876,11 @@ const handleLogout = () => {
                   onPress={() => handleDeleteMedication(med.id, med.name)}
                   style={{ padding: 4 }}
                 >
-                  <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
+                  <Ionicons
+                    name="trash-outline"
+                    size={16}
+                    color={Colors.textMuted}
+                  />
                 </TouchableOpacity>
               </View>
             ))
@@ -693,19 +888,24 @@ const handleLogout = () => {
         </View>
 
         {/*  Caregivers */}
-        <View style={{
-          marginHorizontal: 16,
-          marginBottom: 16,
-          backgroundColor: Colors.card,
-          borderRadius: 18,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: Colors.cardBorder,
-        }}>
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: Colors.card,
+            borderRadius: 18,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: Colors.cardBorder,
+          }}
+        >
           <SectionHeader
             icon="people-outline"
             title="Caregivers"
-            action={{ label: "+ Add", onPress: () => setShowAddCaregiver(true) }}
+            action={{
+              label: "+ Add",
+              onPress: () => setShowAddCaregiver(true),
+            }}
           />
 
           {caregivers.length === 0 ? (
@@ -721,8 +921,14 @@ const handleLogout = () => {
                 gap: 6,
               }}
             >
-              <Ionicons name="person-add-outline" size={24} color={Colors.textMuted} />
-              <Text style={{ fontSize: 13, color: Colors.textMuted }}>No caregivers added</Text>
+              <Ionicons
+                name="person-add-outline"
+                size={24}
+                color={Colors.textMuted}
+              />
+              <Text style={{ fontSize: 13, color: Colors.textMuted }}>
+                No caregivers added
+              </Text>
               <Text style={{ fontSize: 11, color: Colors.textMuted }}>
                 Add a doctor, family member, or friend
               </Text>
@@ -740,48 +946,83 @@ const handleLogout = () => {
                   borderTopColor: Colors.cardBorder,
                 }}
               >
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 11,
-                  backgroundColor: `${Colors.success}15`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.success }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 11,
+                    backgroundColor: `${Colors.success}15`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: Colors.success,
+                    }}
+                  >
                     {caregiver.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: Colors.textPrimary,
+                    }}
+                  >
                     {caregiver.name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: Colors.textMuted, marginTop: 1 }}>
-                    {caregiver.relationship ?? "Caregiver"} · {caregiver.phoneNumber}
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: Colors.textMuted,
+                      marginTop: 1,
+                    }}
+                  >
+                    {caregiver.relationship ?? "Caregiver"} ·{" "}
+                    {caregiver.phoneNumber}
                   </Text>
                 </View>
 
-                <View style={{
-                  backgroundColor: caregiver.isActive ? `${Colors.success}15` : Colors.cardBorder,
-                  borderRadius: 6,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                }}>
-                  <Text style={{
-                    fontSize: 10,
-                    fontWeight: "700",
-                    color: caregiver.isActive ? Colors.success : Colors.textMuted,
-                  }}>
+                <View
+                  style={{
+                    backgroundColor: caregiver.isActive
+                      ? `${Colors.success}15`
+                      : Colors.cardBorder,
+                    borderRadius: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: caregiver.isActive
+                        ? Colors.success
+                        : Colors.textMuted,
+                    }}
+                  >
                     {caregiver.isActive ? "ACTIVE" : "MUTED"}
                   </Text>
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => handleRemoveCaregiver(caregiver.id, caregiver.name)}
+                  onPress={() =>
+                    handleRemoveCaregiver(caregiver.id, caregiver.name)
+                  }
                   style={{ padding: 4 }}
                 >
-                  <Ionicons name="close-circle-outline" size={18} color={Colors.textMuted} />
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={18}
+                    color={Colors.textMuted}
+                  />
                 </TouchableOpacity>
               </View>
             ))
@@ -789,36 +1030,44 @@ const handleLogout = () => {
         </View>
 
         {/*  App Settings  */}
-        <View style={{
-          marginHorizontal: 16,
-          marginBottom: 16,
-          backgroundColor: Colors.card,
-          borderRadius: 18,
-          borderWidth: 1,
-          borderColor: Colors.cardBorder,
-          overflow: "hidden",
-        }}>
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: Colors.card,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: Colors.cardBorder,
+            overflow: "hidden",
+          }}
+        >
           {[
             {
               icon: "notifications-outline",
               label: "Notification Settings",
-              onPress: () => Alert.alert("Coming soon", "Notification settings will be available in the next update."),
+              onPress: () =>
+                Alert.alert(
+                  "Coming soon",
+                  "Notification settings will be available in the next update.",
+                ),
             },
             {
               icon: "shield-checkmark-outline",
               label: "Privacy & Data",
-              onPress: () => Alert.alert(
-                "Privacy",
-                "Your vitals are stored securely on VitalSync servers. Only statistical averages are shared with AI services, and only with your explicit consent."
-              ),
+              onPress: () =>
+                Alert.alert(
+                  "Privacy",
+                  "Your vitals are stored securely on VitalSync servers. Only statistical averages are shared with AI services, and only with your explicit consent.",
+                ),
             },
             {
               icon: "information-circle-outline",
               label: "About VitalSync",
-              onPress: () => Alert.alert(
-                "VitalSync",
-                "Real-time IoT health monitoring system.\nVersion 1.0.0\n\nBuilt as a Final Year Project — Electronic Engineering."
-              ),
+              onPress: () =>
+                Alert.alert(
+                  "VitalSync",
+                  "Real-time IoT health monitoring system.\nVersion 1.0.0\n\nBuilt as a Final Year Project — Electronic Engineering.",
+                ),
             },
           ].map((item, index, arr) => (
             <TouchableOpacity
@@ -833,11 +1082,26 @@ const handleLogout = () => {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name={item.icon as any} size={18} color={Colors.textSecondary} />
-              <Text style={{ flex: 1, fontSize: 14, color: Colors.textPrimary, marginLeft: 12 }}>
+              <Ionicons
+                name={item.icon as any}
+                size={18}
+                color={Colors.textSecondary}
+              />
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: Colors.textPrimary,
+                  marginLeft: 12,
+                }}
+              >
                 {item.label}
               </Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={Colors.textMuted}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -861,15 +1125,23 @@ const handleLogout = () => {
           activeOpacity={0.85}
         >
           <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
-          <Text style={{ color: Colors.danger, fontWeight: "700", fontSize: 15 }}>
+          <Text
+            style={{ color: Colors.danger, fontWeight: "700", fontSize: 15 }}
+          >
             Log Out
           </Text>
         </TouchableOpacity>
 
-        <Text style={{ textAlign: "center", fontSize: 11, color: Colors.textMuted, marginTop: 8 }}>
+        <Text
+          style={{
+            textAlign: "center",
+            fontSize: 11,
+            color: Colors.textMuted,
+            marginTop: 8,
+          }}
+        >
           VitalSync · Final Year Project 2026
         </Text>
-
       </ScrollView>
 
       {/* Modals */}
