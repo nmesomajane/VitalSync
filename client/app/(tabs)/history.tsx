@@ -16,7 +16,9 @@ import HistoryChart from "../../components/HistoryChart";
 import SummaryCard from "../../components/SummaryCard";
 import AlertListItem from "../../components/AlertListItem";
 import { Colors } from "../../constants/colors";
+import { generateAndShareHealthReport } from "../../src/services/shareReport";
 import useVitalsStore from "../../src/store/vitalsStore";
+import useAuthStore from "../../src/store/authStore"
 import { Share } from "react-native";
 import { generatePublicShareToken } from "../../src/services/history";
 
@@ -30,38 +32,32 @@ const TIME_RANGES: { label: string; days: number }[] = [
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const [shareLoading, setShareLoading] = useState(false);
+    const user = useAuthStore((state) => state.user);
 
-  const handleShare = async () => {
-    setShareLoading(true);
-    try {
-      const { shareUrl, expiresAt } = await generatePublicShareToken();
-      // one API call — no caregiver needed
-
-      await Share.share({
-        title: "My VitalSync Health Data",
-        message:
-          `View my live health vitals on VitalSync:\n\n${shareUrl}\n\n` +
-          `This link expires on ${new Date(expiresAt).toLocaleDateString(
-            "en-GB",
-            {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            },
-          )}.\n\nShared from VitalSync Health Monitoring App.`,
-      });
-
-      console.log("Share sheet opened successfully");
-    } catch (err) {
-      console.error("Share failed:", err);
-      Alert.alert(
-        "Share Failed",
-        "Could not generate share link. Check your connection.",
-      );
-    } finally {
-      setShareLoading(false);
-    }
-  };
+const handleShare = async () => {
+  setShareLoading(true);
+  try {
+    const { latestVitals } = useVitalsStore.getState();
+    // get current vitals from store
+  
+    await generateAndShareHealthReport(
+      latestVitals,
+      // current vitals
+      summary,
+      // 30-day summary from useHistory hook
+      user?.name ?? "Patient"
+      // patient name from auth store
+    );
+  } catch (err) {
+    console.error("Share failed:", err);
+    Alert.alert(
+      "Share Failed",
+      "Could not generate health report. Make sure you have vitals data."
+    );
+  } finally {
+    setShareLoading(false);
+  }
+};
 
   const {
     chartData,

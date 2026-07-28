@@ -34,6 +34,7 @@ import {
   scheduleMedicationReminder,
   cancelMedicationReminder,
   requestNotificationPermission,
+
 } from "../../src/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -117,6 +118,7 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
               marginBottom: 4,
             }}
           />
+      
 
           <Text
             style={{

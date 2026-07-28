@@ -173,3 +173,4 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
     return null;
   }
 };
+
