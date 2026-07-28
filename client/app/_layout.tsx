@@ -2,7 +2,7 @@
 import "../global.css";
 import React, { useEffect } from "react";
 
-import { Stack, router } from "expo-router";
+import { Stack, router, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import useAuthStore from "../src/store/authStore";
@@ -15,32 +15,55 @@ import {
 import api from "../src/services/api";
 
 export default function RootLayout() {
-  const { token, setToken, setLoading } = useAuthStore();
+  const { token, setToken, setLoading, setUser, isLoading } = useAuthStore();
+   const segments = useSegments();
 
   console.log("RootLayout rendered — token present:", !!token);
 
   useEffect(() => {
     const restoreSession = async () => {
-      console.log("_layout: checking stored token");
       setLoading(true);
-
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
         if (saved) {
-          console.log("_layout: token found — restoring");
           await setToken(saved);
-        } else {
-          console.log("_layout: no token — going to login");
+          
+          try {
+            const { default: api } = await import("../src/services/api");
+            const res = await api.get("/api/v1/auth/profile");
+            setUser(res.data.user);
+          } catch {
+            
+            await SecureStore.deleteItemAsync("vitalsync_token");
+            await setToken(null);
+          }
         }
       } catch (e) {
-        console.error("_layout: session restore error:", e);
+        console.error("_layout: restore error:", e);
       } finally {
         setLoading(false);
       }
     };
-
     restoreSession();
   }, []);
+   useEffect(() => {
+    if (isLoading) return;
+
+
+    const inAuthGroup = segments[0] === "(auth)";
+   
+
+    if (!token && !inAuthGroup) {
+      
+      console.log("_layout: no token — redirecting to login");
+      router.replace("/(auth)/login");
+    } else if (token && inAuthGroup) {
+     
+      console.log("_layout: token found — redirecting to tabs");
+      router.replace("/(tabs)");
+    }
+   
+  }, [token, segments, isLoading]);
 
   useEffect(() => {
     requestNotificationPermission();
