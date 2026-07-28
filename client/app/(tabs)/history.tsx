@@ -31,32 +31,37 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const [shareLoading, setShareLoading] = useState(false);
 
-const handleShare = async () => {
-  setShareLoading(true);
-  try {
-    const { shareUrl, expiresAt } = await generatePublicShareToken();
-    // one API call — no caregiver needed
+  const handleShare = async () => {
+    setShareLoading(true);
+    try {
+      const { shareUrl, expiresAt } = await generatePublicShareToken();
+      // one API call — no caregiver needed
 
-    await Share.share({
-      title: "My VitalSync Health Data",
-      message:
-        `View my live health vitals on VitalSync:\n\n${shareUrl}\n\n` +
-        `This link expires on ${new Date(expiresAt).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })}.\n\nShared from VitalSync Health Monitoring App.`,
-     
-    });
+      await Share.share({
+        title: "My VitalSync Health Data",
+        message:
+          `View my live health vitals on VitalSync:\n\n${shareUrl}\n\n` +
+          `This link expires on ${new Date(expiresAt).toLocaleDateString(
+            "en-GB",
+            {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            },
+          )}.\n\nShared from VitalSync Health Monitoring App.`,
+      });
 
-    console.log("Share sheet opened successfully");
-  } catch (err) {
-    console.error("Share failed:", err);
-    Alert.alert("Share Failed", "Could not generate share link. Check your connection.");
-  } finally {
-    setShareLoading(false);
-  }
-};
+      console.log("Share sheet opened successfully");
+    } catch (err) {
+      console.error("Share failed:", err);
+      Alert.alert(
+        "Share Failed",
+        "Could not generate share link. Check your connection.",
+      );
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const {
     chartData,
@@ -187,6 +192,7 @@ const handleShare = async () => {
             >
               Health History
             </Text>
+
             <Text
               style={{
                 fontSize: 13,
@@ -195,7 +201,7 @@ const handleShare = async () => {
               }}
             >
               {summary
-                ? `${summary.daysAnalysed} days · ${summary.totalReadings.toLocaleString()} readings`
+                ? `${summary.daysAnalysed ?? selectedDays} days · ${summary.totalReadings?.toLocaleString() ?? 0} readings`
                 : "No data yet"}
             </Text>
           </View>
