@@ -107,7 +107,7 @@ export const fetchCaregivers = async () => {
 };
 
 
-
+  
 export const generatePublicShareToken = async (): Promise<{
   shareUrl: string;
   expiresAt: string;

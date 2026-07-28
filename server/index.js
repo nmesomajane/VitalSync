@@ -74,6 +74,7 @@ const startServer = async () => {
   app.use("/api/v1/vitals", vitalsRoutes);
   app.use("/api/v1/alerts", alertRoutes);
   app.use ("/api/v1/caregivers", caregiverRoutes);
+  app.use("/api/v1/share", caregiverRoutes);
   app.use("/api/v1/ai", aiRoutes);
   app.use("/api/v1/medications", medicationRoutes);
   app.get("/", (req, res) => {
