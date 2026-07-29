@@ -60,21 +60,7 @@ export const toggleMedicationReminder = async (id: string): Promise<Medication> 
   return res.data.data;
 };
 
-export const fetchCaregivers = async (): Promise<Caregiver[]> => {
-  const res = await api.get("/api/v1/caregivers");
-  return res.data.data ?? [];
-};
 
-export const addCaregiver = async (
-  data: Partial<Caregiver>
-): Promise<Caregiver> => {
-  const res = await api.post("/api/v1/caregivers", data);
-  return res.data.data;
-};
-
-export const removeCaregiver = async (id: string): Promise<void> => {
-  await api.delete(`/api/v1/caregivers/${id}`);
-};
 
 export const logout = async (): Promise<void> => {
   // no backend call needed — just clear local token
