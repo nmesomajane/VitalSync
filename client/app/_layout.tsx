@@ -2,7 +2,7 @@
 import "../global.css";
 import React, { useEffect } from "react";
 
-import { Stack, router, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, useRootNavigationState, } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import useAuthStore from "../src/store/authStore";
@@ -17,6 +17,8 @@ import api from "../src/services/api";
 export default function RootLayout() {
   const { token, setToken, setLoading, setUser, isLoading } = useAuthStore();
    const segments = useSegments();
+   const router = useRouter();
+   const rootNavigationState = useRootNavigationState();
 
   console.log("RootLayout rendered — token present:", !!token);
 
@@ -29,7 +31,7 @@ export default function RootLayout() {
           await setToken(saved);
           
           try {
-            const { default: api } = await import("../src/services/api");
+      
             const res = await api.get("/api/v1/auth/profile");
             setUser(res.data.user);
           } catch {
@@ -46,24 +48,8 @@ export default function RootLayout() {
     };
     restoreSession();
   }, []);
-   useEffect(() => {
-    if (isLoading) return;
 
 
-    const inAuthGroup = segments[0] === "(auth)";
-   
-
-    if (!token && !inAuthGroup) {
-      
-      console.log("_layout: no token — redirecting to login");
-      router.replace("/(auth)/login");
-    } else if (token && inAuthGroup) {
-     
-      console.log("_layout: token found — redirecting to tabs");
-      router.replace("/(tabs)");
-    }
-   
-  }, [token, segments, isLoading]);
 
   useEffect(() => {
     requestNotificationPermission();
@@ -82,15 +68,7 @@ export default function RootLayout() {
     return cleanup;
   }, []);
 
-  useEffect(() => {
-    if (token) {
-      console.log("_layout: token detected — pushing to tabs");
-      router.replace("/(tabs)");
-    } else {
-      console.log("_layout: no token — pushing to login");
-      router.replace("/(auth)/login");
-    }
-  }, [token]);
+ 
 
   return (
     <>
@@ -104,6 +82,3 @@ export default function RootLayout() {
   );
 }
 
-function setUser(user: any) {
-  throw new Error("Function not implemented.");
-}

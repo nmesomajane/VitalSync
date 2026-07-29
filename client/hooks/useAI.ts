@@ -67,6 +67,7 @@ export const useAI = (): AIHookResult => {
 
   //  fetch suggestions when consent is confirmed 
   const loadSuggestions = useCallback(
+    
     async (showRefresh: boolean = false) => {
       if (!hasConsent) {
         console.log("useAI: skipping fetch — no consent");
@@ -85,6 +86,7 @@ export const useAI = (): AIHookResult => {
 
       try {
         const data = await fetchAISuggestions(7);
+        console.log("RAW GEMINI TEXT:", data.suggestions);
         setSuggestions(data);
 
      

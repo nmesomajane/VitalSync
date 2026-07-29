@@ -20,7 +20,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
 import React from "react";
 
-// required for Google OAuth to work on Android
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -57,8 +56,6 @@ export default function LoginScreen() {
           "/api/v1/auth/google/token",
           {
             accessToken: authentication?.accessToken,
-            // your backend uses this to verify with Google
-            // and create/find the user in your database
           },
         );
 
@@ -117,8 +114,7 @@ export default function LoginScreen() {
 
       setUser(response.data.user);
       await setToken(response.data.token);
-
-      router.replace("/(tabs)/index");
+     router.replace("/(tabs)");
     } catch (error: any) {
       console.log("Login error:", error?.message);
       console.log("Full error:", JSON.stringify(error, null, 2));
@@ -216,11 +212,7 @@ export default function LoginScreen() {
                   setErrors((p) => ({ ...p, password: undefined }));
               }}
               secureTextEntry={!showPassword}
-              // secureTextEntry controls visibility
-              // false = visible, true = hidden (dots)
-              // !showPassword flips it correctly:
-              //   showPassword false → secureTextEntry true  → hidden
-              //   showPassword true  → secureTextEntry false → visible
+         
               autoCapitalize="none"
               autoCorrect={false}
             />

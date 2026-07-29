@@ -194,48 +194,38 @@ class AIService {
   }
 
   //  prompt builder
-  buildHealthPrompt(averages, pattern, anomalyCount, days) {
-    return `
-You are a clinical health advisor reviewing a patient's wearable health monitoring data.
+buildHealthPrompt(averages, pattern, anomalyCount, days) {
+  return `You are a clinical health advisor.
 
+PATIENT DATA (last ${days} days):
+Heart Rate Average: ${averages.heartRate ?? "unavailable"} bpm
+SpO2 Average: ${averages.spO2 ?? "unavailable"}%
+Temperature Average: ${averages.bodyTemperature ?? "unavailable"}C
+Respiratory Rate Average: ${averages.respiratoryRate ?? "unavailable"}/min
+Anomalies: ${anomalyCount}
+Pattern: ${pattern.pattern}
+Risk: ${pattern.riskLevel}
 
-PATIENT DATA SUMMARY (last ${days} days):
-- Average Heart Rate: ${averages.heartRate ?? "unavailable"} bpm
-- Average SpO₂: ${averages.spO2 ?? "unavailable"}%
-- Average Body Temperature: ${averages.bodyTemperature ?? "unavailable"}°C
-- Average Respiratory Rate: ${averages.respiratoryRate ?? "unavailable"}/min
-- Average Room Humidity: ${averages.roomHumidity ?? "unavailable"}%
-- Total anomalies detected: ${anomalyCount} readings outside safe range
-
-PATTERN CLASSIFICATION:
-- Identified pattern: ${pattern.pattern}
-- Risk level: ${pattern.riskLevel}
-- Clinical focus: ${pattern.focus}
-- Assessment: ${pattern.urgency}
-
-INSTRUCTIONS:
-Respond ONLY with this exact format. Do not add headers, asterisks, or extra text.
+IMPORTANT: Respond using ONLY plain text. No markdown. No asterisks. No bold. No bullet points. Use EXACTLY this format with these exact labels:
 
 MEAL PLAN:
-Breakfast: [your recommendation here]
-Lunch: [your recommendation here]
-Dinner: [your recommendation here]
-Snack: [your recommendation here]
+Breakfast: [one sentence recommendation]
+Lunch: [one sentence recommendation]
+Dinner: [one sentence recommendation]
+Snack: [one sentence recommendation]
 
 DAILY ROUTINE:
-Morning: [your recommendation here]
-Afternoon: [your recommendation here]
-Evening: [your recommendation here]
-Sleep: [your recommendation here]
+Morning: [one sentence recommendation]
+Afternoon: [one sentence recommendation]
+Evening: [one sentence recommendation]
+Sleep: [one sentence recommendation]
 
 KEY WARNING SIGNS:
-[List 2 specific symptoms to watch for given this patient's pattern]
+- [warning 1]
+- [warning 2]
 
-IMPORTANT: Be specific to the patient's data. Do not give generic health advice.
-If risk level is high, include a clear recommendation to consult a doctor.
-Keep the entire response under 300 words.
-    `.trim();
-  }
+Base everything specifically on the patient data above.`.trim();
+}
 
   //  video query builder
   buildVideoSearchQuery(pattern) {

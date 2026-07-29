@@ -34,7 +34,6 @@ import {
   scheduleMedicationReminder,
   cancelMedicationReminder,
   requestNotificationPermission,
-
 } from "../../src/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -118,7 +117,6 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
               marginBottom: 4,
             }}
           />
-      
 
           <Text
             style={{
@@ -539,8 +537,15 @@ export default function ProfileScreen() {
         text: "Log Out",
         style: "destructive",
         onPress: async () => {
-          await storeLogout();
-          console.log("Token after logout:", useAuthStore.getState().token);
+          try {
+            await storeLogout();
+
+            console.log("After logout:", useAuthStore.getState().token);
+
+            router.replace("/(auth)/login");
+          } catch (error) {
+            console.error("Logout failed:", error);
+          }
         },
       },
     ]);

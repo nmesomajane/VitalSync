@@ -17,7 +17,6 @@ interface AuthState {
 }
 
 const useAuthStore = create<AuthState>((set) => ({
-  
   user: null,
   token: null,
   isLoading: false,
@@ -42,9 +41,25 @@ const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     console.log("authStore: logging out");
-    await SecureStore.deleteItemAsync("vitalsync_token");
-    set({ user: null, token: null });
-    console.log("authStore: logout complete");
+
+    try {
+      await SecureStore.deleteItemAsync("vitalsync_token");
+
+      set({
+        user: null,
+        token: null,
+      });
+
+      console.log("authStore: logout complete");
+    } catch (error) {
+      console.error("authStore: logout error:", error);
+
+      // Still clear local state
+      set({
+        user: null,
+        token: null,
+      });
+    }
   },
 
   setLoading: (isLoading: boolean) => set({ isLoading }),
