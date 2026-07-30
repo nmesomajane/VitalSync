@@ -2,23 +2,23 @@
 import "../global.css";
 import React, { useEffect } from "react";
 
-import { Stack, useRouter, useSegments, useRootNavigationState, } from "expo-router";
+import { Stack, useRouter,  } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import useAuthStore from "../src/store/authStore";
 import {
   requestNotificationPermission,
   setupNotificationListeners,
-  registerForPushNotifications,
+
 } from "../src/services/notifications";
 
 import api from "../src/services/api";
 
 export default function RootLayout() {
-  const { token, setToken, setLoading, setUser, isLoading } = useAuthStore();
-   const segments = useSegments();
+  const { token, setToken, setLoading, setUser} = useAuthStore();
+
    const router = useRouter();
-   const rootNavigationState = useRootNavigationState();
+  
 
   console.log("RootLayout rendered — token present:", !!token);
 

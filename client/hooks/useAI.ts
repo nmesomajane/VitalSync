@@ -5,7 +5,7 @@ import {
   fetchAISuggestions,
   AISuggestions,
   ParsedSuggestions,
-  YouTubeVideo,
+  
 } from "../src/services/ai";
 
 export interface AIHookResult {
