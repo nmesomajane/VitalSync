@@ -86,7 +86,10 @@ export const useAI = (): AIHookResult => {
 
       try {
         const data = await fetchAISuggestions(7);
-        console.log("RAW GEMINI TEXT:", data.suggestions);
+      console.log("================");
+console.log(data.suggestions);
+console.log("================");
+
         setSuggestions(data);
 
      
@@ -166,24 +169,29 @@ export const useAI = (): AIHookResult => {
 
 
 const parseGeminiResponse = (text: string): ParsedSuggestions => {
-  console.log("parseGeminiResponse: raw text:", text.substring(0, 200));
+console.log("========== GEMINI RESPONSE ==========");
+console.log(text);
+console.log("====================================");
  
 
   const defaults: ParsedSuggestions = {
     mealPlan: {
-      breakfast: "No recommendation available",
-      lunch: "No recommendation available",
-      dinner: "No recommendation available",
-      snack: "No recommendation available",
+      breakfast: "AI Temporary Unavailable",
+      lunch: "AI Temporary Unavailable",
+      dinner: "AI Temporary Unavailable",
+      snack: "AI Temporary Unavailable",
     },
     routine: {
-      morning: "No recommendation available",
-      afternoon: "No recommendation available",
-      evening: "No recommendation available",
-      sleep: "No recommendation available",
+      morning: "AI Temporary Unavailable",
+      afternoon: "AI Temporary Unavailable",
+      evening: "AI Temporary Unavailable",
+      sleep: "AI Temporary Unavailable",
     },
     warnings: [],
   };
+  
+  console.log("Received Gemini response:");
+console.log(text);
 
   if (!text || text.trim().length === 0) return defaults;
 
