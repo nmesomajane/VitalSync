@@ -13,26 +13,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import useAuthStore from "../../src/store/authStore";
 import { Colors } from "../../constants/colors";
 import {
   fetchProfile,
   fetchMedications,
- 
+  fetchCaregivers,
   addMedication,
   deleteMedication,
   toggleMedicationReminder,
-
-
+  addCaregiver,
+  removeCaregiver,
   UserProfile,
   Medication,
-  
+  Caregiver,
 } from "../../src/services/profile";
 import {
   scheduleMedicationReminder,
   cancelMedicationReminder,
-
+  requestNotificationPermission,
 } from "../../src/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -263,9 +264,191 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
   );
 }
 
+//  Add Caregiver Modal
+interface AddCaregiverModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onAdd: (data: Partial<Caregiver>) => Promise<void>;
+}
 
+function AddCaregiverModal({
+  visible,
+  onClose,
+  onAdd,
+}: AddCaregiverModalProps) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [loading, setLoading] = useState(false);
 
-// Section Header 
+  const handleAdd = async () => {
+    if (!name.trim() || !phone.trim()) {
+      Alert.alert("Required", "Name and phone number are required.");
+      return;
+    }
+    if (!phone.startsWith("+")) {
+      Alert.alert(
+        "Invalid Phone",
+        "Enter phone in international format e.g. +2348012345678",
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onAdd({
+        name: name.trim(),
+        phoneNumber: phone.trim(),
+        relationship: relationship.trim() || undefined,
+      });
+      setName("");
+      setPhone("");
+      setRelationship("");
+      onClose();
+    } catch (err: any) {
+      Alert.alert(
+        "Failed",
+        err.response?.data?.message ?? "Could not add caregiver.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "rgba(0,0,0,0.6)",
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: Colors.card,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            gap: 16,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: Colors.cardBorder,
+              alignSelf: "center",
+            }}
+          />
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: Colors.textPrimary,
+            }}
+          >
+            Add Caregiver
+          </Text>
+
+          {[
+            {
+              label: "Full Name",
+              value: name,
+              setter: setName,
+              placeholder: "Dr. Adaeze",
+              keyboard: "default" as const,
+            },
+            {
+              label: "Phone (+international)",
+              value: phone,
+              setter: setPhone,
+              placeholder: "+2348012345678",
+              keyboard: "phone-pad" as const,
+            },
+            {
+              label: "Relationship (optional)",
+              value: relationship,
+              setter: setRelationship,
+              placeholder: "Doctor, Mother, etc.",
+              keyboard: "default" as const,
+            },
+          ].map((field) => (
+            <View key={field.label}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: Colors.textMuted,
+                  marginBottom: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
+              >
+                {field.label}
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: Colors.background,
+                  borderRadius: 12,
+                  padding: 13,
+                  color: Colors.textPrimary,
+                  borderWidth: 1,
+                  borderColor: Colors.cardBorder,
+                  fontSize: 15,
+                }}
+                placeholder={field.placeholder}
+                placeholderTextColor={Colors.textMuted}
+                value={field.value}
+                onChangeText={field.setter}
+                keyboardType={field.keyboard}
+                autoCapitalize="none"
+              />
+            </View>
+          ))}
+
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.background,
+                borderRadius: 12,
+                padding: 14,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: Colors.cardBorder,
+              }}
+            >
+              <Text style={{ color: Colors.textSecondary, fontWeight: "600" }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleAdd}
+              disabled={loading}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.primary,
+                borderRadius: 12,
+                padding: 14,
+                alignItems: "center",
+              }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Section Header ────────────────────────────────────────────
 function SectionHeader({
   icon,
   title,
@@ -313,11 +496,11 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
-  
+  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddMed, setShowAddMed] = useState(false);
-
+  const [showAddCaregiver, setShowAddCaregiver] = useState(false);
 
   console.log("ProfileScreen rendered");
 
@@ -327,15 +510,15 @@ export default function ProfileScreen() {
     else setIsLoading(true);
 
     try {
-      const [profileData, medsData, ] = await Promise.all([
+      const [profileData, medsData, caregiversData] = await Promise.all([
         fetchProfile(),
         fetchMedications(),
-       
+        fetchCaregivers(),
       ]);
       // Promise.all fetches all three simultaneously
       setProfile(profileData);
       setMedications(medsData);
-     
+      setCaregivers(caregiversData);
     } catch (err) {
       console.error("ProfileScreen: load failed:", err);
     } finally {
@@ -433,6 +616,25 @@ export default function ProfileScreen() {
     );
   };
 
+  // caregiver handlers
+  const handleAddCaregiver = async (data: Partial<Caregiver>) => {
+    const newCaregiver = await addCaregiver(data);
+    setCaregivers((prev) => [...prev, newCaregiver]);
+  };
+
+  const handleRemoveCaregiver = (id: string, name: string) => {
+    Alert.alert("Remove Caregiver", `Remove ${name} from your caregivers?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await removeCaregiver(id);
+          setCaregivers((prev) => prev.filter((c) => c.id !== id));
+        },
+      },
+    ]);
+  };
 
 
 
@@ -699,9 +901,147 @@ export default function ProfileScreen() {
           )}
         </View>
 
-    
+        {/*  Caregivers */}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 16,
+            backgroundColor: Colors.card,
+            borderRadius: 18,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: Colors.cardBorder,
+          }}
+        >
+          <SectionHeader
+            icon="people-outline"
+            title="Caregivers"
+            action={{
+              label: "+ Add",
+              onPress: () => setShowAddCaregiver(true),
+            }}
+          />
 
-       
+          {caregivers.length === 0 ? (
+            <TouchableOpacity
+              onPress={() => setShowAddCaregiver(true)}
+              style={{
+                borderWidth: 1,
+                borderColor: Colors.cardBorder,
+                borderStyle: "dashed",
+                borderRadius: 12,
+                padding: 16,
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={24}
+                color={Colors.textMuted}
+              />
+              <Text style={{ fontSize: 13, color: Colors.textMuted }}>
+                No caregivers added
+              </Text>
+              <Text style={{ fontSize: 11, color: Colors.textMuted }}>
+                Add a doctor, family member, or friend
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            caregivers.map((caregiver, index) => (
+              <View
+                key={caregiver.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 12,
+                  borderTopWidth: index > 0 ? 1 : 0,
+                  borderTopColor: Colors.cardBorder,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 11,
+                    backgroundColor: `${Colors.success}15`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: Colors.success,
+                    }}
+                  >
+                    {caregiver.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: Colors.textPrimary,
+                    }}
+                  >
+                    {caregiver.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: Colors.textMuted,
+                      marginTop: 1,
+                    }}
+                  >
+                    {caregiver.relationship ?? "Caregiver"} ·{" "}
+                    {caregiver.phoneNumber}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: caregiver.isActive
+                      ? `${Colors.success}15`
+                      : Colors.cardBorder,
+                    borderRadius: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: caregiver.isActive
+                        ? Colors.success
+                        : Colors.textMuted,
+                    }}
+                  >
+                    {caregiver.isActive ? "ACTIVE" : "MUTED"}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() =>
+                    handleRemoveCaregiver(caregiver.id, caregiver.name)
+                  }
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={18}
+                    color={Colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
 
         {/*  App Settings  */}
         <View
@@ -824,7 +1164,11 @@ export default function ProfileScreen() {
         onClose={() => setShowAddMed(false)}
         onAdd={handleAddMedication}
       />
-     
+      <AddCaregiverModal
+        visible={showAddCaregiver}
+        onClose={() => setShowAddCaregiver(false)}
+        onAdd={handleAddCaregiver}
+      />
     </View>
   );
 }
