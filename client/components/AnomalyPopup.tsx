@@ -89,7 +89,7 @@ export default function AnomalyPopup() {
       scaleAnim.setValue(0.8);
       opacityAnim.setValue(0);
     }
-  }, [isVisible, activeAlert]);
+  }, [isVisible, activeAlert, scaleAnim, opacityAnim]);
 
   if (!activeAlert) return null;
 

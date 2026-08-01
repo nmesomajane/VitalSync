@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
+import { create, AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
 import * as SecureStore from "expo-secure-store";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.121.129.221:3000";
@@ -6,7 +6,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.121.129.221:3000";
 
 console.log("🔌 API_URL is:", API_URL);
 
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = create({
   baseURL: API_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },

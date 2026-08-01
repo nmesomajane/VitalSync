@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React,{ useState } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import useAuthStore from "../../src/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
-import React from "react";
+
 
 
 WebBrowser.maybeCompleteAuthSession();

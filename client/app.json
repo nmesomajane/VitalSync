@@ -20,11 +20,14 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#080c14"
       },
-      "web": {
+      
+      "package": "com.vitalsync.app"
+    
+    },
+    "web": {
         "bundler": "metro"
       },
-      "package": "com.vitalsync.app"
-    },
+      
     "plugins": [
       "expo-web-browser"
     ],

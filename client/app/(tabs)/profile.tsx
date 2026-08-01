@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as SecureStore from "expo-secure-store";
+
 import { router } from "expo-router";
 import useAuthStore from "../../src/store/authStore";
 import { Colors } from "../../constants/colors";
@@ -33,10 +33,10 @@ import {
 import {
   scheduleMedicationReminder,
   cancelMedicationReminder,
-  requestNotificationPermission,
+
 } from "../../src/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
+
 
 interface AddMedModalProps {
   visible: boolean;
@@ -78,7 +78,7 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
       setDosage("");
       setTime("08:00");
       onClose();
-    } catch (err) {
+    } catch {
       Alert.alert("Failed", "Could not add medication. Try again.");
     } finally {
       setLoading(false);
@@ -448,7 +448,7 @@ function AddCaregiverModal({
   );
 }
 
-// ── Section Header ────────────────────────────────────────────
+// Section Header 
 function SectionHeader({
   icon,
   title,

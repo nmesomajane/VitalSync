@@ -47,7 +47,7 @@ export default function RootLayout() {
       }
     };
     restoreSession();
-  }, []);
+  }, [setLoading, setToken, setUser]);
 
 
 
@@ -66,7 +66,7 @@ export default function RootLayout() {
     );
 
     return cleanup;
-  }, []);
+  }, [router]);
 
  
 
