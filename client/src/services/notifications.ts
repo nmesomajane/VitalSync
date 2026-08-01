@@ -15,6 +15,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
+
+
 //  request permission 
 export const requestNotificationPermission = async (): Promise<boolean> => {
 
@@ -45,11 +47,9 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     await Notifications.setNotificationChannelAsync("medications", {
       name: "Medication Reminders",
       importance: Notifications.AndroidImportance.HIGH,
-      // HIGH = makes sound and appears as heads-up notification
-      // this is what makes it appear even when phone screen is off
       sound: "default",
       vibrationPattern: [0, 250, 250, 250],
-      // vibrate pattern: wait 0ms, vibrate 250ms, wait 250ms, vibrate 250ms
+  
     });
 
     await Notifications.setNotificationChannelAsync("alerts", {
@@ -59,8 +59,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
       sound: "default",
       vibrationPattern: [0, 500, 200, 500, 200, 500],
     });
-    // Android requires notification channels since Android 8
-    // without a channel, notifications are silently dropped
+    
   }
 
   console.log("Notifications: permission granted");
@@ -160,8 +159,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: Constants.expoConfig?.extra?.eas?.projectId,
-      // projectId from your app.json/app.config.js
-      // needed for Expo's push notification service
+      
     });
 
     console.log("Push token:", tokenData.data);

@@ -39,7 +39,7 @@ export const generateAIResponse = async (prompt) => {
   try {
     console.log("getting model");
      const model = client.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
     });
     console.log("Prompt sent to Gemini:");
     console.log(prompt);

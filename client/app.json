@@ -8,7 +8,6 @@
     "scheme": "vitalsync",
     "userInterfaceStyle": "dark",
     "splash": {
-    
       "resizeMode": "contain",
       "backgroundColor": "#080c14"
     },
@@ -21,14 +20,18 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#080c14"
       },
-          "web": {
-      "bundler": "metro"
-    },
-
+      "web": {
+        "bundler": "metro"
+      },
       "package": "com.vitalsync.app"
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6be6e698-2e89-45c3-90b7-24c79fd8e1c7"
+      }
+    }
   }
 }

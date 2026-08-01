@@ -35,6 +35,7 @@ import {
 
 } from "../../src/services/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 
 interface AddMedModalProps {
   visible: boolean;
@@ -54,6 +55,7 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
       return;
     }
 
+   
     // validate time format HH:MM
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(time)) {
@@ -433,6 +435,8 @@ export default function ProfileScreen() {
 
 
 
+
+
   
 
   if (isLoading) {
@@ -694,6 +698,8 @@ export default function ProfileScreen() {
             ))
           )}
         </View>
+
+    
 
        
 
