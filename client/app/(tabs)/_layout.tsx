@@ -76,7 +76,7 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           height: 56 + insets.bottom,
           
-          paddingBottom: insets.bottom + 4,
+          paddingBottom: insets.bottom + 5,
           
           paddingTop: 8,
           elevation: 0,

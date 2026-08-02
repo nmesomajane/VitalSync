@@ -9,6 +9,7 @@ import useAuthStore from "../src/store/authStore";
 import {
   requestNotificationPermission,
   setupNotificationListeners,
+  registerForPushNotifications
 
 } from "../src/services/notifications";
 
@@ -27,19 +28,25 @@ export default function RootLayout() {
       setLoading(true);
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
-        if (saved) {
-          await setToken(saved);
-          
-          try {
-      
-            const res = await api.get("/api/v1/auth/profile");
-            setUser(res.data.user);
-          } catch {
-            
-            await SecureStore.deleteItemAsync("vitalsync_token");
-            await setToken(null);
-          }
-        }
+      if (saved) {
+  await setToken(saved);
+  try {
+    const res = await api.get("/api/v1/auth/profile");
+    setUser(res.data.user);
+
+    // register for push notifications and send token to backend
+    const pushToken = await registerForPushNotifications();
+    if (pushToken) {
+      await api.post("/api/v1/alerts/fcm-token", { fcmToken: pushToken });
+  
+      console.log("Push token registered with backend");
+    }
+  } catch {
+    console.log("Session restore failed");
+    await SecureStore.deleteItemAsync("vitalsync_token");
+    await setToken(null);
+  }
+}
       } catch (e) {
         console.error("_layout: restore error:", e);
       } finally {

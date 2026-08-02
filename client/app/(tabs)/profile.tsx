@@ -10,6 +10,10 @@ import {
   Modal,
   Switch,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,15 +59,11 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
       Alert.alert("Required", "Please enter medication name and dosage.");
       return;
     }
-
-   
-    // validate time format HH:MM
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(time)) {
       Alert.alert("Invalid Time", "Enter time in HH:MM format e.g. 08:00");
       return;
     }
-
     setLoading(true);
     try {
       await onAdd({
@@ -72,7 +72,6 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
         frequency: "once_daily",
         scheduledTimes: [time],
         startDate: new Date().toISOString().split("T")[0],
-        // "2024-07-14" format — DATEONLY in Sequelize
       });
       setName("");
       setDosage("");
@@ -90,176 +89,176 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
       visible={visible}
       transparent
       animationType="slide"
-      // "slide" = modal slides up from bottom — standard for forms
+      statusBarTranslucent
     >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "rgba(0,0,0,0.6)",
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: Colors.card,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 24,
-            gap: 16,
-          }}
-        >
-          {/* Handle bar — signals this is a bottom sheet */}
-          <View
-            style={{
-              width: 40,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: Colors.cardBorder,
-              alignSelf: "center",
-              marginBottom: 4,
-            }}
-          />
+      {/* TouchableWithoutFeedback dismisses keyboard when tapping outside */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
 
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: Colors.textPrimary,
-            }}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            // iOS needs "padding" — adds padding below content to push it up
+            // Android needs "height" — reduces the view height to fit above keyboard
+            // without this the keyboard slides over the modal
           >
-            Add Medication
-          </Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              {/* second TouchableWithoutFeedback prevents the inner tap from
+                  bubbling up and closing the modal when tapping inside it */}
+              <View style={{
+                backgroundColor: "#111827",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                paddingHorizontal: 24,
+                paddingTop: 16,
+                paddingBottom: Platform.OS === "ios" ? 40 : 24,
+                // extra bottom padding on iOS for home indicator
+              }}>
 
-          {/* Name */}
-          <View>
-            <Text
-              style={{
-                fontSize: 11,
-                color: Colors.textMuted,
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-              }}
-            >
-              Medication Name
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: Colors.background,
-                borderRadius: 12,
-                padding: 13,
-                color: Colors.textPrimary,
-                borderWidth: 1,
-                borderColor: Colors.cardBorder,
-                fontSize: 15,
-              }}
-              placeholder="e.g. Aspirin"
-              placeholderTextColor={Colors.textMuted}
-              value={name}
-              onChangeText={setName}
-            />
-          </View>
+                {/* Handle bar */}
+                <View style={{
+                  width: 40, height: 4, borderRadius: 2,
+                  backgroundColor: "#1f2937",
+                  alignSelf: "center",
+                  marginBottom: 16,
+                }} />
 
-          {/* Dosage */}
-          <View>
-            <Text
-              style={{
-                fontSize: 11,
-                color: Colors.textMuted,
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-              }}
-            >
-              Dosage
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: Colors.background,
-                borderRadius: 12,
-                padding: 13,
-                color: Colors.textPrimary,
-                borderWidth: 1,
-                borderColor: Colors.cardBorder,
-                fontSize: 15,
-              }}
-              placeholder="e.g. 75mg or 1 tablet"
-              placeholderTextColor={Colors.textMuted}
-              value={dosage}
-              onChangeText={setDosage}
-            />
-          </View>
+                {/* Header row with close button */}
+                <View style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#f9fafb" }}>
+                    Add Medication
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      onClose();
+                    }}
+                    style={{
+                      width: 30, height: 30,
+                      borderRadius: 15,
+                      backgroundColor: "#1f2937",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#9ca3af", fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
 
-          {/* Time */}
-          <View>
-            <Text
-              style={{
-                fontSize: 11,
-                color: Colors.textMuted,
-                marginBottom: 6,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-              }}
-            >
-              Reminder Time (HH:MM)
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: Colors.background,
-                borderRadius: 12,
-                padding: 13,
-                color: Colors.textPrimary,
-                borderWidth: 1,
-                borderColor: Colors.cardBorder,
-                fontSize: 15,
-              }}
-              placeholder="08:00"
-              placeholderTextColor={Colors.textMuted}
-              value={time}
-              onChangeText={setTime}
-              keyboardType="numbers-and-punctuation"
-            />
-          </View>
+                {/* Medication Name */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Medication Name *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e",
+                      borderRadius: 12, padding: 13,
+                      color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="e.g. Aspirin, Paracetamol"
+                    placeholderTextColor="#6b7280"
+                    value={name}
+                    onChangeText={setName}
+                    returnKeyType="next"
+                    // "next" shows a Next button on the keyboard
+                    // instead of Done — moves focus to next input
+                  />
+                </View>
 
-          {/* Buttons */}
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.background,
-                borderRadius: 12,
-                padding: 14,
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: Colors.cardBorder,
-              }}
-            >
-              <Text style={{ color: Colors.textSecondary, fontWeight: "600" }}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
+                {/* Dosage */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Dosage *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e",
+                      borderRadius: 12, padding: 13,
+                      color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="e.g. 500mg, 1 tablet, 2 capsules"
+                    placeholderTextColor="#6b7280"
+                    value={dosage}
+                    onChangeText={setDosage}
+                    returnKeyType="next"
+                  />
+                </View>
 
-            <TouchableOpacity
-              onPress={handleAdd}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.primary,
-                borderRadius: 12,
-                padding: 14,
-                alignItems: "center",
-              }}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+                {/* Time */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Reminder Time (24hr format) *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e",
+                      borderRadius: 12, padding: 13,
+                      color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="e.g. 08:00 or 14:30"
+                    placeholderTextColor="#6b7280"
+                    value={time}
+                    onChangeText={setTime}
+                    keyboardType="numbers-and-punctuation"
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                    // dismisses keyboard when user taps Done
+                  />
+                  <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
+                    Use 24-hour format · 08:00 = 8am · 20:00 = 8pm
+                  </Text>
+                </View>
+
+                {/* Buttons */}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => { Keyboard.dismiss(); onClose(); }}
+                    style={{
+                      flex: 1, backgroundColor: "#0a0f1e",
+                      borderRadius: 12, padding: 14, alignItems: "center",
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                  >
+                    <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleAdd}
+                    disabled={loading}
+                    style={{
+                      flex: 1, backgroundColor: "#2563eb",
+                      borderRadius: 12, padding: 14, alignItems: "center",
+                    }}
+                  >
+                    {loading
+                      ? <ActivityIndicator color="white" size="small" />
+                      : <Text style={{ color: "white", fontWeight: "700" }}>Add Medication</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -270,12 +269,8 @@ interface AddCaregiverModalProps {
   onClose: () => void;
   onAdd: (data: Partial<Caregiver>) => Promise<void>;
 }
-
-function AddCaregiverModal({
-  visible,
-  onClose,
-  onAdd,
-}: AddCaregiverModalProps) {
+//  add caregiver
+function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("");
@@ -287,13 +282,9 @@ function AddCaregiverModal({
       return;
     }
     if (!phone.startsWith("+")) {
-      Alert.alert(
-        "Invalid Phone",
-        "Enter phone in international format e.g. +2348012345678",
-      );
+      Alert.alert("Invalid Phone", "Enter phone in international format\ne.g. +2348012345678");
       return;
     }
-
     setLoading(true);
     try {
       await onAdd({
@@ -306,148 +297,164 @@ function AddCaregiverModal({
       setRelationship("");
       onClose();
     } catch (err: any) {
-      Alert.alert(
-        "Failed",
-        err.response?.data?.message ?? "Could not add caregiver.",
-      );
+      Alert.alert("Failed", err.response?.data?.message ?? "Could not add caregiver.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "rgba(0,0,0,0.6)",
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: Colors.card,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 24,
-            gap: 16,
-          }}
-        >
-          <View
-            style={{
-              width: 40,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: Colors.cardBorder,
-              alignSelf: "center",
-            }}
-          />
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: Colors.textPrimary,
-            }}
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            Add Caregiver
-          </Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={{
+                backgroundColor: "#111827",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                paddingHorizontal: 24,
+                paddingTop: 16,
+                paddingBottom: Platform.OS === "ios" ? 40 : 24,
+              }}>
 
-          {[
-            {
-              label: "Full Name",
-              value: name,
-              setter: setName,
-              placeholder: "Dr. Adaeze",
-              keyboard: "default" as const,
-            },
-            {
-              label: "Phone (+international)",
-              value: phone,
-              setter: setPhone,
-              placeholder: "+2348012345678",
-              keyboard: "phone-pad" as const,
-            },
-            {
-              label: "Relationship (optional)",
-              value: relationship,
-              setter: setRelationship,
-              placeholder: "Doctor, Mother, etc.",
-              keyboard: "default" as const,
-            },
-          ].map((field) => (
-            <View key={field.label}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: Colors.textMuted,
-                  marginBottom: 6,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                }}
-              >
-                {field.label}
-              </Text>
-              <TextInput
-                style={{
-                  backgroundColor: Colors.background,
-                  borderRadius: 12,
-                  padding: 13,
-                  color: Colors.textPrimary,
-                  borderWidth: 1,
-                  borderColor: Colors.cardBorder,
-                  fontSize: 15,
-                }}
-                placeholder={field.placeholder}
-                placeholderTextColor={Colors.textMuted}
-                value={field.value}
-                onChangeText={field.setter}
-                keyboardType={field.keyboard}
-                autoCapitalize="none"
-              />
-            </View>
-          ))}
+                <View style={{
+                  width: 40, height: 4, borderRadius: 2,
+                  backgroundColor: "#1f2937",
+                  alignSelf: "center", marginBottom: 16,
+                }} />
 
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.background,
-                borderRadius: 12,
-                padding: 14,
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: Colors.cardBorder,
-              }}
-            >
-              <Text style={{ color: Colors.textSecondary, fontWeight: "600" }}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleAdd}
-              disabled={loading}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.primary,
-                borderRadius: 12,
-                padding: 14,
-                alignItems: "center",
-              }}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+                <View style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#f9fafb" }}>
+                    Add Caregiver
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => { Keyboard.dismiss(); onClose(); }}
+                    style={{
+                      width: 30, height: 30, borderRadius: 15,
+                      backgroundColor: "#1f2937",
+                      alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#9ca3af", fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Name */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Full Name *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e", borderRadius: 12,
+                      padding: 13, color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="e.g. Dr. Adaeze"
+                    placeholderTextColor="#6b7280"
+                    value={name}
+                    onChangeText={setName}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                {/* Phone */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Phone Number *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e", borderRadius: 12,
+                      padding: 13, color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="+2348012345678"
+                    placeholderTextColor="#6b7280"
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    returnKeyType="next"
+                  />
+                  <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
+                    Must start with + and country code
+                  </Text>
+                </View>
+
+                {/* Relationship */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{
+                    fontSize: 11, color: "#6b7280",
+                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
+                  }}>
+                    Relationship (optional)
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: "#0a0f1e", borderRadius: 12,
+                      padding: 13, color: "#f9fafb", fontSize: 15,
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                    placeholder="e.g. Doctor, Mother, Brother"
+                    placeholderTextColor="#6b7280"
+                    value={relationship}
+                    onChangeText={setRelationship}
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                  />
+                </View>
+
+                {/* Buttons */}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => { Keyboard.dismiss(); onClose(); }}
+                    style={{
+                      flex: 1, backgroundColor: "#0a0f1e",
+                      borderRadius: 12, padding: 14, alignItems: "center",
+                      borderWidth: 1, borderColor: "#1f2937",
+                    }}
+                  >
+                    <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleAdd}
+                    disabled={loading}
+                    style={{
+                      flex: 1, backgroundColor: "#2563eb",
+                      borderRadius: 12, padding: 14, alignItems: "center",
+                    }}
+                  >
+                    {loading
+                      ? <ActivityIndicator color="white" size="small" />
+                      : <Text style={{ color: "white", fontWeight: "700" }}>Add Caregiver</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
-
 // Section Header 
 function SectionHeader({
   icon,

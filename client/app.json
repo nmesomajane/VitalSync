@@ -8,6 +8,7 @@
     "scheme": "vitalsync",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#080c14"
     },
@@ -21,15 +22,18 @@
         "backgroundColor": "#080c14"
       },
       
-      "package": "com.vitalsync.app"
+      "package": "com.vitalsync.app",
+      "googleServicesFile": "./google-services.json"
+      
     
     },
     "web": {
         "bundler": "metro"
       },
-      
+
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
