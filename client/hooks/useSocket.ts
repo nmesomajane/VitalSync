@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import useVitalsStore from "../src/store/vitalsStore";
 import useAuthStore from "../src/store/authStore";
 import { Vitals, Alert } from "../src/types";
+import { triggerAnomalyNotification } from "../src/services/notifications";
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3000";
 
@@ -84,14 +85,15 @@ export const useSocket = () => {
       );
 
       //  alert events
-      socket.on("vitals:alert", (alertData: Alert) => {
-        console.log("useSocket: ⚠️ vitals:alert received:", alertData.message);
+      socket.on("vitals:alert", async (alertData: Alert) => {
+        console.log("useSocket: vitals:alert received:", alertData.message);
 
         setActiveAlert(alertData);
 
         incrementUnreadCount();
-      });
 
+        await triggerAnomalyNotification(alertData);
+      });
       // ECG stream
       socket.on("ecg:stream", (payload: { ecgData: number[] }) => {
         console.log(

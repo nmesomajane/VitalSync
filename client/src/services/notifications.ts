@@ -175,3 +175,46 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   }
 };
 
+export const triggerAnomalyNotification = async (alert: {
+  severity: string;
+  message: string;
+  metric?: string | null;
+  value?: number | null;
+}): Promise<void> => {
+  const hasPermission = await requestNotificationPermission();
+  if (!hasPermission) return;
+
+  // severity determines the notification title and urgency
+  const titles: Record<string, string> = {
+    critical: "🚨 CRITICAL HEALTH ALERT",
+    high: "⚠️ High Health Alert",
+    medium: "⚡ Health Alert",
+    low: "ℹ️ Health Notice",
+  };
+
+  const title = titles[alert.severity] ?? "⚠️ VitalSync Alert";
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body: alert.message,
+     
+      sound: "alarm.mp3",
+      
+      data: {
+        type: "alert",
+        severity: alert.severity,
+        metric: alert.metric,
+      },
+      priority: alert.severity === "critical" || alert.severity === "high"
+        ? Notifications.AndroidNotificationPriority.MAX
+        : Notifications.AndroidNotificationPriority.HIGH,
+   
+    },
+    trigger: null,
+
+  });
+
+  console.log("Anomaly notification fired for:", alert.severity, alert.message);
+};
+
