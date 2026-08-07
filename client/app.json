@@ -19,7 +19,9 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#080c14"
+        "backgroundColor": "#080c14",
+         "sounds": ["./assets/sounds/alarm.mp3"],
+         "androidMode": "default"
       },
       
       "package": "com.vitalsync.app",

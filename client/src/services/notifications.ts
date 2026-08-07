@@ -43,24 +43,29 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     return false;
   }
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("medications", {
-      name: "Medication Reminders",
-      importance: Notifications.AndroidImportance.HIGH,
-      sound: "default",
-      vibrationPattern: [0, 250, 250, 250],
-  
-    });
-
-    await Notifications.setNotificationChannelAsync("alerts", {
-      name: "Health Alerts",
-      importance: Notifications.AndroidImportance.MAX,
-      // MAX = highest priority — overrides do-not-disturb
-      sound: "default",
-      vibrationPattern: [0, 500, 200, 500, 200, 500],
-    });
+ if (Platform.OS === "android") {
+  await Notifications.setNotificationChannelAsync("medications", {
+    name: "Medication Reminders",
+    importance: Notifications.AndroidImportance.MAX,
     
-  }
+    sound: "alarm.mp3",
+    vibrationPattern: [0, 400, 200, 400, 200, 400],
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: true,
+  });
+
+  await Notifications.setNotificationChannelAsync("alerts", {
+    name: "Health Alerts",
+    importance: Notifications.AndroidImportance.MAX,
+    sound: "alarm.mp3",
+    vibrationPattern: [0, 500, 200, 500, 200, 500, 200, 500],
+    // four pulses for alerts — more urgent than medication
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: true,
+  });
+}
 
   console.log("Notifications: permission granted");
   return true;
@@ -72,42 +77,40 @@ export const scheduleMedicationReminder = async (
   medicationName: string,
   dosage: string,
   time: string
-  // time = "HH:MM" format e.g. "08:00"
 ): Promise<string | null> => {
-  // returns the notification identifier — save this to cancel later
-
   const hasPermission = await requestNotificationPermission();
   if (!hasPermission) return null;
 
   const [hours, minutes] = time.split(":").map(Number);
-  // split "08:00" into [8, 0]
-  // .map(Number) converts string "8" to number 8
 
-  // schedule a repeating daily notification at the specified time
   const identifier = await Notifications.scheduleNotificationAsync({
     content: {
       title: "💊 Medication Reminder",
       body: `Time to take ${medicationName} — ${dosage}`,
+      sound: "alarm.mp3",
+      // plays your custom alarm sound
       data: {
         type: "medication",
         medicationId,
-      
+        medicationName,
+        dosage,
       },
-      sound: "default",
-      categoryIdentifier: "medications",
-      
+      priority: Notifications.AndroidNotificationPriority.MAX,
+    
+      sticky: false,
+     
     },
     trigger: {
-       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: hours,
       minute: minutes,
-   
+      repeats: true,
+      channelId: "medications",
+      // channelId links to the Android channel with our alarm sound
+      // without this, Android ignores the sound setting
     },
   });
 
-  console.log(
-    `Notifications: scheduled ${medicationName} at ${time} — id: ${identifier}`
-  );
+  console.log(`Medication reminder scheduled: ${medicationName} at ${time}`);
   return identifier;
 };
 
