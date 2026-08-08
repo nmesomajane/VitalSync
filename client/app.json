@@ -19,23 +19,26 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#080c14",
-         "sounds": ["./assets/sounds/alarm.mp3"],
-         "androidMode": "default"
+        "backgroundColor": "#080c14"
       },
-      
       "package": "com.vitalsync.app",
       "googleServicesFile": "./google-services.json"
-      
-    
     },
     "web": {
-        "bundler": "metro"
-      },
-
+      "bundler": "metro"
+    },
     "plugins": [
       "expo-web-browser",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#2563eb",
+          "sounds": ["./assets/sounds/alarm.mp3"],
+          "androidMode": "default",
+          "androidCollapsedTitle": "VitalSync Alert"
+        }
+      ]
     ],
     "extra": {
       "eas": {

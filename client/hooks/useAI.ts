@@ -75,6 +75,10 @@ export const useAI = (): AIHookResult => {
         
       }
 
+
+  console.log("useAI: starting loadSuggestions");
+  console.log("useAI: API URL being used:", process.env.EXPO_PUBLIC_API_URL);
+
       console.log("useAI: fetching AI suggestions");
 
       if (showRefresh) {

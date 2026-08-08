@@ -173,6 +173,11 @@ class AlertService {
         }) : null
       ),
     ]);
+    console.log("Firing notifications for user:", userId);
+console.log("Caregiver SMS will fire if Twilio is configured:", {
+  twilioConfigured: !!process.env.TWILIO_ACCOUNT_SID,
+  caregivers: caregivers?.length ?? 0,
+});
 
     // update notification sent status
     await alert.update({ notificationSent: pushSent });

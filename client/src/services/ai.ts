@@ -86,24 +86,23 @@ export const updateConsent = async (consent: boolean): Promise<void> => {
 };
 
 //  fetch AI suggestions 
-export const fetchAISuggestions = async (
-  days: number = 7
-): Promise<AISuggestions> => {
+export const fetchAISuggestions = async (days: number = 7): Promise<AISuggestions> => {
+  const url = `/api/v1/ai/suggestions?days=${days}`;
+  console.log("aiService: POST", url);
+  console.log("aiService: base URL:", process.env.EXPO_PUBLIC_API_URL);
 
-
-  console.log(`aiService: fetching AI suggestions for ${days} days`);
-
-  const response = await api.post<{ success: boolean; data: AISuggestions }>(
-    `/api/v1/ai/suggestions?days=${days}`
-
-  );
-
-  console.log(
-    "aiService: suggestions received, pattern:",
-    response.data.data?.pattern?.name
-  );
-
-  return response.data.data;
+  try {
+    const response = await api.post<{ success: boolean; data: AISuggestions }>(url);
+    console.log("aiService: success, status:", response.status);
+    console.log("aiService: pattern:", response.data.data?.pattern?.name);
+    return response.data.data;
+  } catch (error: any) {
+    console.log("aiService: FAILED");
+    console.log("aiService: status:", error.response?.status);
+    console.log("aiService: message:", error.response?.data?.message);
+    console.log("aiService: full URL called:", error.config?.baseURL + error.config?.url);
+    throw error;
+  }
 };
 
 //  fetch YouTube videos only 
