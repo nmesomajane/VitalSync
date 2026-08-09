@@ -2,24 +2,22 @@
 import "../global.css";
 import React, { useEffect } from "react";
 
-import { Stack, useRouter,  } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import useAuthStore from "../src/store/authStore";
 import {
   requestNotificationPermission,
   setupNotificationListeners,
-  registerForPushNotifications
-
+  registerForPushNotifications,
 } from "../src/services/notifications";
 
 import api from "../src/services/api";
 
 export default function RootLayout() {
-  const { token, setToken, setLoading, setUser} = useAuthStore();
+  const { token, setToken, setLoading, setUser } = useAuthStore();
 
-   const router = useRouter();
-  
+  const router = useRouter();
 
   console.log("RootLayout rendered — token present:", !!token);
 
@@ -28,25 +26,27 @@ export default function RootLayout() {
       setLoading(true);
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
-      if (saved) {
-  await setToken(saved);
-  try {
-    const res = await api.get("/api/v1/auth/profile");
-    setUser(res.data.user);
+        if (saved) {
+          await setToken(saved);
+          try {
+            const res = await api.get("/api/v1/auth/profile");
+            setUser(res.data.user);
 
-    // register for push notifications and send token to backend
-    const pushToken = await registerForPushNotifications();
-    if (pushToken) {
-      await api.post("/api/v1/alerts/fcm-token", { fcmToken: pushToken });
-  
-      console.log("Push token registered with backend");
-    }
-  } catch {
-    console.log("Session restore failed");
-    await SecureStore.deleteItemAsync("vitalsync_token");
-    await setToken(null);
-  }
-}
+            // register for push notifications and send token to backend
+            const pushToken = await registerForPushNotifications();
+            if (pushToken) {
+              await api.post("/api/v1/alerts/fcm-token", {
+                fcmToken: pushToken,
+              });
+
+              console.log("Push token registered with backend");
+            }
+          } catch {
+            console.log("Session restore failed");
+            await SecureStore.deleteItemAsync("vitalsync_token");
+            await setToken(null);
+          }
+        }
       } catch (e) {
         console.error("_layout: restore error:", e);
       } finally {
@@ -55,8 +55,6 @@ export default function RootLayout() {
     };
     restoreSession();
   }, [setLoading, setToken, setUser]);
-
-
 
   useEffect(() => {
     requestNotificationPermission();
@@ -75,8 +73,6 @@ export default function RootLayout() {
     return cleanup;
   }, [router]);
 
- 
-
   return (
     <>
       <StatusBar style="light" />
@@ -88,4 +84,3 @@ export default function RootLayout() {
     </>
   );
 }
-

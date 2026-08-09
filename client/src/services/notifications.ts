@@ -16,6 +16,34 @@ Notifications.setNotificationHandler({
 });
 
 
+export async function setupNotificationChannels() {
+  if (Platform.OS !== "android") return;
+
+  await Notifications.setNotificationChannelAsync("medications", {
+    name: "Medication Reminders",
+    description: "Reminders for scheduled medications",
+    importance: Notifications.AndroidImportance.MAX,
+    sound: "alarm.mp3",
+    vibrationPattern: [0, 500, 500, 500],
+    enableVibrate: true,
+    enableLights: true,
+    lockscreenVisibility:
+      Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+
+  await Notifications.setNotificationChannelAsync("health-alerts", {
+    name: "Health Alerts",
+    description: "Important VitalSync health alerts",
+    importance: Notifications.AndroidImportance.MAX,
+    sound: "alarm.mp3",
+    vibrationPattern: [0, 500, 500, 500],
+    enableVibrate: true,
+    enableLights: true,
+    lockscreenVisibility:
+      Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+}
+
 
 //  request permission 
 export const requestNotificationPermission = async (): Promise<boolean> => {
@@ -79,6 +107,7 @@ export const scheduleMedicationReminder = async (
   time: string
 ): Promise<string | null> => {
   const hasPermission = await requestNotificationPermission();
+
   if (!hasPermission) return null;
 
   const [hours, minutes] = time.split(":").map(Number);
@@ -88,7 +117,6 @@ export const scheduleMedicationReminder = async (
       title: "💊 Medication Reminder",
       body: `Time to take ${medicationName} — ${dosage}`,
       sound: "alarm.mp3",
-      // plays your custom alarm sound
       data: {
         type: "medication",
         medicationId,
@@ -96,21 +124,20 @@ export const scheduleMedicationReminder = async (
         dosage,
       },
       priority: Notifications.AndroidNotificationPriority.MAX,
-    
-      sticky: false,
-     
     },
+
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: hours,
       minute: minutes,
-      repeats: true,
       channelId: "medications",
-      // channelId links to the Android channel with our alarm sound
-      // without this, Android ignores the sound setting
     },
   });
 
-  console.log(`Medication reminder scheduled: ${medicationName} at ${time}`);
+  console.log(
+    `Medication reminder scheduled: ${medicationName} at ${time}`
+  );
+
   return identifier;
 };
 
@@ -211,7 +238,9 @@ export const triggerAnomalyNotification = async (alert: {
         : Notifications.AndroidNotificationPriority.HIGH,
    
     },
-    trigger: null,
+    trigger: {
+  channelId: "health-alerts",
+},
 
   });
 
