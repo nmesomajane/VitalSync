@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import * as SecureStore from "expo-secure-store";
+
 import useVitalsStore from "../src/store/vitalsStore";
 import useAuthStore from "../src/store/authStore";
 import { Vitals, Alert } from "../src/types";
