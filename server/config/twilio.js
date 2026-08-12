@@ -6,7 +6,16 @@ dotenv.config();
 let twilioClient;
 
 const getTwilioClient = () => {
+ 
   if (twilioClient) return twilioClient;
+
+     console.log("Twilio config check:", {
+    hasSID: !!process.env.TWILIO_ACCOUNT_SID,
+    hasToken: !!process.env.TWILIO_AUTH_TOKEN,
+    hasPhone: !!process.env.TWILIO_PHONE_NUMBER,
+    SIDprefix: process.env.TWILIO_ACCOUNT_SID?.substring(0, 6),
+  
+  });
 
 
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {

@@ -39,14 +39,18 @@ class UserRepository {
     await user.update(updateData);
     return user;
   }
-  async findCaregivers(patientId) {
+async findCaregivers(patientId) {
+ 
+  const { default: Caregiver } = await import("../models/caregiver.js");
+
   const caregivers = await Caregiver.findAll({
     where: {
       patientId,
       isActive: true,
-    
     },
   });
+
+  console.log(`userRepository.findCaregivers: found ${caregivers.length} for patient ${patientId}`);
   return caregivers;
 }
 }

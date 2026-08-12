@@ -4,6 +4,7 @@ import { sendPushNotification } from "../config/firebase.js";
 import { sendSOSMessages } from "../config/twilio.js";
 import { emitAlert } from "../socket/socketManager.js";
 import AppError from "../utilis/appError.js";
+import { sendSMS } from "../config/twilio.js";
 
 class AlertService {
 
@@ -36,7 +37,8 @@ class AlertService {
   //  check readings against user's personal thresholds
   async checkAndCreateAlerts({ userId, readings, io }) {
   
-
+       console.log("alertService: checking thresholds for user:", userId);
+  console.log("alertService: readings received:", readings);
     const thresholds = await alertRepository.getOrCreateThresholds(userId);
 
     const alertsCreated = [];
@@ -134,54 +136,118 @@ class AlertService {
   }
 
   //  fire all notification channels 
-  async fireNotifications({ userId, alert, io }) {
-    const user = await userRepository.findById(userId);
-    if (!user) return;
+async fireNotifications({ userId, alert, io }) {
+  console.log("fireNotifications: starting for user:", userId);
 
-    const notificationTitle = alert.severity === "critical"
-      ? " CRITICAL: VitalSync Alert"
-      : " VitalSync Alert";
-
-    const notificationBody = alert.message;
-
-    
-    const [pushSent] = await Promise.all([
-
-      
-      sendPushNotification({
-        fcmToken: user.fcmToken,
-        title: notificationTitle,
-        body: notificationBody,
-        data: {
-          alertId: alert.id,
-          type: alert.type,
-          severity: alert.severity,
-          metric: alert.metric,
-         
-        },
-      }),
-
-      // WebSocket emit to any connected caregiver sessions
-      Promise.resolve(
-        io ? emitAlert(io, userId, {
-          alertId: alert.id,
-          message: alert.message,
-          severity: alert.severity,
-          metric: alert.metric,
-          value: alert.value,
-          timestamp: alert.createdAt,
-        }) : null
-      ),
-    ]);
-    console.log("Firing notifications for user:", userId);
-console.log("Caregiver SMS will fire if Twilio is configured:", {
-  twilioConfigured: !!process.env.TWILIO_ACCOUNT_SID,
-  caregivers: caregivers?.length ?? 0,
-});
-
-    // update notification sent status
-    await alert.update({ notificationSent: pushSent });
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    console.log("fireNotifications: user not found — aborting");
+    return;
   }
+  console.log("fireNotifications: user found:", user.email);
+
+  // ── FETCH CAREGIVERS HERE ─────────────────────────────────
+  // caregivers must be fetched inside this method
+  // they are NOT available from the outer scope
+  // this was the bug — caregivers was referenced but never defined here
+  const caregivers = await userRepository.findCaregivers(userId);
+  console.log("fireNotifications: caregivers found:", caregivers.length);
+  console.log("fireNotifications: caregiver phones:", caregivers.map(c => c.phoneNumber));
+
+  const notificationTitle = alert.severity === "critical"
+    ? "🚨 CRITICAL: VitalSync Alert"
+    : "⚠️ VitalSync Alert";
+
+  // ── 1. FCM push to patient's phone ───────────────────────
+  const pushSent = await sendPushNotification({
+    fcmToken: user.fcmToken,
+    title: notificationTitle,
+    body: alert.message,
+    data: {
+      alertId: alert.id,
+      type: alert.type,
+      severity: alert.severity,
+      metric: alert.metric,
+    },
+  });
+  console.log("fireNotifications: FCM push sent:", pushSent);
+
+  // ── 2. WebSocket emit to patient's app ────────────────────
+  if (io) {
+    emitAlert(io, userId, {
+      alertId: alert.id,
+      message: alert.message,
+      severity: alert.severity,
+      metric: alert.metric,
+      value: alert.value,
+      timestamp: alert.createdAt,
+    });
+    console.log("fireNotifications: WebSocket alert emitted");
+  }
+
+  // ── 3. SMS to caregivers 
+  if (caregivers.length > 0) {
+    console.log(`fireNotifications: sending SMS to ${caregivers.length} caregiver(s)`);
+
+    const smsMessage = this.buildAlertSMS(user, alert);
+    // build the SMS message
+
+    const smsResults = await Promise.all(
+      caregivers.map(async (caregiver) => {
+        console.log(`fireNotifications: sending SMS to ${caregiver.phoneNumber}`);
+        const sent = await sendSMS({
+          to: caregiver.phoneNumber,
+          message: smsMessage,
+        });
+        console.log(`fireNotifications: SMS to ${caregiver.phoneNumber} — ${sent ? "SUCCESS" : "FAILED"}`);
+        return sent;
+      })
+    );
+
+    const sentCount = smsResults.filter(Boolean).length;
+    console.log(`fireNotifications: ${sentCount}/${caregivers.length} SMS sent`);
+
+    // update the alert record with SMS status
+    await alert.update({ smsSent: sentCount > 0 });
+  } else {
+    console.log("fireNotifications: no caregivers found — skipping SMS");
+  }
+
+  // update notification sent status
+  await alert.update({ notificationSent: pushSent });
+}
+
+// ── build SMS message ─────────────────────────────────────────
+// separate function keeps fireNotifications readable
+buildAlertSMS(user, alert) {
+  const time = new Date().toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const severityEmoji = {
+    critical: "🚨 CRITICAL",
+    high: "⚠️ HIGH",
+    medium: "⚡ ALERT",
+    low: "ℹ️ NOTICE",
+  }[alert.severity] ?? "⚠️ ALERT";
+
+  return `${severityEmoji} - VitalSync Health Alert
+
+Patient: ${user.name}
+Time: ${time}
+
+${alert.message}
+
+${alert.vitalsSnapshot ? `Current readings:
+Heart Rate: ${alert.vitalsSnapshot.heartRate ?? "N/A"} bpm
+SpO2: ${alert.vitalsSnapshot.spO2 ?? "N/A"}%
+Temperature: ${alert.vitalsSnapshot.bodyTemperature ?? "N/A"}°C` : ""}
+
+Please check on your patient immediately.
+
+- VitalSync Health Monitor`;
+}
 
   //  SOS endpoint logic 
   async triggerSOS({ userId, currentVitals, io }) {
