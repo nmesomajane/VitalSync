@@ -45,4 +45,4 @@ export const connectDB = async () => {
   }
 };
 
-export default sequelize;
+export { sequelize };
