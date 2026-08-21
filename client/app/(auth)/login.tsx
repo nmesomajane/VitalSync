@@ -8,11 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+ 
 } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
+
 import api from "../../src/services/api";
 import useAuthStore from "../../src/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,55 +29,13 @@ export default function LoginScreen() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [googleLoading, setGoogleLoading] = useState<boolean>(false);
+
   const [errors, setErrors] = useState<FormErrors<LoginPayload>>({});
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const { setUser, setToken } = useAuthStore();
 
-  //  Google OAuth setup
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    //  Client ID
-  });
-
-  // useEffect that fires when Google returns a response
-
-  const handleGoogleResponse = async () => {
-    if (response?.type === "success") {
-      // "success" = user approved and Google returned a token
-      const { authentication } = response;
-
-      console.log("Google OAuth success — sending token to backend");
-      setGoogleLoading(true);
-
-      try {
-        const result = await api.post<AuthResponse>(
-          "/api/v1/auth/google/token",
-          {
-            accessToken: authentication?.accessToken,
-          },
-        );
-
-        setUser(result.data.user);
-        await setToken(result.data.token);
-        console.log("Google login complete — navigating to tabs");
-        router.replace("/(tabs)/index");
-      } catch (error: any) {
-        console.error("Google login error:", error.response?.data);
-        Alert.alert("Google Sign-In Failed", "Please try again.");
-      } finally {
-        setGoogleLoading(false);
-      }
-    } else if (response?.type === "error") {
-      console.error("Google OAuth error:", response.error);
-    }
-  };
-
-  // call handleGoogleResponse whenever response changes
-  useState(() => {
-    handleGoogleResponse();
-  });
+  
 
   const validate = (): boolean => {
     const newErrors: FormErrors<LoginPayload> = {};
@@ -273,28 +231,7 @@ export default function LoginScreen() {
         </View>
 
         {/* Google sign in button */}
-        <TouchableOpacity
-          className={`rounded-2xl py-4 items-center mb-6 bg-card border border-border flex-row justify-center gap-3 ${
-            googleLoading ? "opacity-50" : "opacity-100"
-          }`}
-          onPress={() => {
-            console.log("Google sign-in tapped");
-            promptAsync();
-          }}
-          disabled={!request || googleLoading}
-          activeOpacity={0.8}
-        >
-          {googleLoading ? (
-            <ActivityIndicator color="#64748b" size="small" />
-          ) : (
-            <>
-              <Text className="text-2xl">G</Text>
-              <Text className="text-white text-base font-semibold">
-                Continue with Google
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+       
 
         {/* Navigate to signup */}
         <TouchableOpacity

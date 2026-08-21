@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import useAuthStore from "../../src/store/authStore";
 import { AuthResponse, FormErrors } from "../../src/types";
 
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+
 
 interface FormState {
   name: string;
