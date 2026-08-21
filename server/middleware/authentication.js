@@ -4,34 +4,33 @@ import UserRepository from '../repository/userRepository.js';
 import AppError from '../utilis/appError.js';
 import asyncHandler from '../utilis/asyncHandler.js';
 
-// Middleware to check if user is authenticated
-export const authenticate = asyncHandler(async (req, res, next) => {
-  let token;
-  
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-  if (!token) {
-    throw new AppError('You are not logged in. Please log in to access this resource', 401);
-  }
 
-  
-  const decoded = verifyToken(token);
-  console.log("Decoded token:", decoded); 
-  if (!decoded) {
-    throw new AppError('Invalid or expired token. Please log in again', 401);
-  }
+export const authenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
 
-  
-  const user = await UserRepository.findById(decoded.id);
-  console.log("Looking for user with id:", decoded.id);
-  console.log("User found:", user);  
-  
-  if (!user) {
-    throw new AppError('The user belonging to this token no longer exists', 401);
-  }
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
 
+    if (decoded.type === "hardware_device") {
+    
+      req.device = { deviceId: decoded.deviceId, isDevice: true };
+      console.log("Hardware device authenticated:", decoded.deviceId);
+      return next();
   
-  req.user = user;
-  next();
-});
+    }
+
+    // normal user token flow
+    const user = await userRepository.findById(decoded.id);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    req.user = user;
+    next();
+
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};

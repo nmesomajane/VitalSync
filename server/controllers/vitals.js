@@ -5,28 +5,31 @@ import vitalsService from '../services/vitalService.js';
 import asyncHandler from '../utilis/asyncHandler.js';
 
 
-export const recordVital = asyncHandler(async (req, res) => {
-  const { id: userId } = req.user;
-  const { heartRate, spO2, bodyTemperature, respiratoryRate, roomHumidity, ecgData } = req.body;
 
-  const io = req.app.get("io");
+export const recordVital = asyncHandler(async (req, res) => {
+  let userId;
+
+  if (req.device?.isDevice) {
+   
+    userId = req.body.userId;
   
-  if (!heartRate && !spO2 && !bodyTemperature && !respiratoryRate && !roomHumidity) {
-    return res.status(400).json({ success: false, message: "At least one vital reading is required" });
+    if (!userId) {
+      return res.status(400).json({
+        message: "userId required in body for device posts"
+      });
+    }
+    console.log("Hardware posting for patient:", userId);
+  } else {
+   
+    userId = req.user.id;
   }
 
   const result = await vitalsService.recordVital({
-    userId, heartRate, spO2, bodyTemperature,
-    respiratoryRate, roomHumidity, ecgData,  
-    io,
-  
+    userId,
+    readings: req.body,
   });
 
-  res.status(201).json({
-    success: true,
-    message: "Vital reading recorded successfully",
-    data: result,
-  });
+  res.status(201).json({ success: true, data: result });
 });
 
 export const getLatestVitals = asyncHandler(async (req, res) => {
