@@ -6,12 +6,17 @@ export enum PacketType {
 
 export interface VitalsPacket {
   heartRate: number;
-  spo2: number;
+  spO2: number;
   temperature: number;
+  respiratoryRate: number;
+  roomHumidity: number;
+  batteryLevel: number;
+  timestamp: number;
+  hasECG: boolean;
 }
 
 export interface ECGPacket {
-  sequence: number;
+  sequenceNumber: number;
   samples: number[];
 }
 
