@@ -2,6 +2,7 @@ import express from "express";
 import { signIn, signOut,signUp ,getProfile} from "../controllers/auth.js";
 
 import { authenticate } from "../middleware/authentication.js";
+import jwt from "jsonwebtoken";
 
 
 
