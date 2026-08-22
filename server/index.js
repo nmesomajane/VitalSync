@@ -70,6 +70,14 @@ const startServer = async () => {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    service: "VitalSync API",
+  });
+});
+
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/vitals", vitalsRoutes);
   app.use("/api/v1/alerts", alertRoutes);

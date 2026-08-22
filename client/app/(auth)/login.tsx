@@ -1,4 +1,4 @@
-import React,{ useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
- 
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -18,8 +18,6 @@ import useAuthStore from "../../src/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
-
-
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,8 +32,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const { setUser, setToken } = useAuthStore();
-
-  
+  const [slowConnection, setSlowConnection] = useState(false);
 
   const validate = (): boolean => {
     const newErrors: FormErrors<LoginPayload> = {};
@@ -57,10 +54,15 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async (): Promise<void> => {
-    console.log("handleLogin called:", email);
     if (!validate()) return;
-
     setIsLoading(true);
+    setSlowConnection(false);
+
+    // show "waking up server" message after 5 seconds
+    const slowTimer = setTimeout(() => {
+      setSlowConnection(true);
+      console.log("Login: server taking long — likely waking from sleep");
+    }, 5000);
 
     try {
       const response = await api.post<AuthResponse>("/api/v1/auth/signin", {
@@ -68,14 +70,27 @@ export default function LoginScreen() {
         password,
       });
 
-      console.log("Login success — userId:", response.data.user.id);
+      clearTimeout(slowTimer);
+      setSlowConnection(false);
 
       setUser(response.data.user);
       await setToken(response.data.token);
-     router.replace("/(tabs)");
     } catch (error: any) {
-      console.log("Login error:", error?.message);
-      console.log("Full error:", JSON.stringify(error, null, 2));
+      clearTimeout(slowTimer);
+      setSlowConnection(false);
+
+      console.log("Login error status:", error?.response?.status);
+      console.log("Login error message:", error?.response?.data?.message);
+      console.log("Login error type:", error?.code);
+      // ECONNABORTED = timeout, ENOTFOUND = no internet
+
+      Alert.alert(
+        "Login Failed",
+        error.code === "ECONNABORTED"
+          ? "Server is waking up. Please try again in 30 seconds."
+          : (error.response?.data?.message ?? "Check your connection."),
+        [{ text: "OK" }],
+      );
     } finally {
       setIsLoading(false);
     }
@@ -170,7 +185,6 @@ export default function LoginScreen() {
                   setErrors((p) => ({ ...p, password: undefined }));
               }}
               secureTextEntry={!showPassword}
-         
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -209,29 +223,47 @@ export default function LoginScreen() {
 
         {/* Login button */}
         <TouchableOpacity
-          className={`rounded-2xl py-4 items-center mb-4 ${
-            isLoading ? "bg-red-900" : "bg-primary"
-          }`}
+          style={{
+            backgroundColor: isLoading ? "#7f1d35" : "#2563eb",
+            borderRadius: 14,
+            padding: 16,
+            alignItems: "center",
+            marginBottom: 16,
+          }}
           onPress={handleLogin}
           disabled={isLoading}
           activeOpacity={0.8}
         >
           {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
+            <View style={{ alignItems: "center", gap: 6 }}>
+              <ActivityIndicator color="white" size="small" />
+              {slowConnection && (
+                <Text
+                  style={{
+                    color: "rgba(255,255,255,0.8)",
+                    fontSize: 11,
+                    marginTop: 4,
+                  }}
+                >
+                  Server waking up... please wait
+                </Text>
+              )}
+            </View>
           ) : (
-            <Text className="text-white text-base font-bold">Sign In</Text>
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
+              Sign In
+            </Text>
           )}
         </TouchableOpacity>
 
         {/* Divider */}
-        <View className="flex-row items-center mb-4">
+        {/* <View className="flex-row items-center mb-4">
           <View className="flex-1 h-px bg-border" />
           <Text className="text-muted text-xs px-3">or continue with</Text>
           <View className="flex-1 h-px bg-border" />
-        </View>
+        </View> */}
 
         {/* Google sign in button */}
-       
 
         {/* Navigate to signup */}
         <TouchableOpacity

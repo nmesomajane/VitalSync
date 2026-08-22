@@ -8,7 +8,7 @@ console.log("🔌 API_URL is:", API_URL);
 
 const api: AxiosInstance = create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 60000,
   headers: { "Content-Type": "application/json" },
 });
 

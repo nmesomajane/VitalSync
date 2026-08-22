@@ -26,6 +26,7 @@ export default function RootLayout() {
       setLoading(true);
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
+          console.log("_layout: stored token found:", !!saved);
         if (saved) {
           await setToken(saved);
           try {
@@ -55,6 +56,8 @@ export default function RootLayout() {
     };
     restoreSession();
   }, [setLoading, setToken, setUser]);
+
+  
 
   useEffect(() => {
     requestNotificationPermission();
