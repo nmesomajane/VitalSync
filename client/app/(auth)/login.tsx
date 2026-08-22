@@ -75,22 +75,32 @@ export default function LoginScreen() {
 
       setUser(response.data.user);
       await setToken(response.data.token);
-    } catch (error: any) {
+    }
+     catch (error: any) {
       clearTimeout(slowTimer);
       setSlowConnection(false);
 
-      console.log("Login error status:", error?.response?.status);
-      console.log("Login error message:", error?.response?.data?.message);
-      console.log("Login error type:", error?.code);
+     console.log("=== LOGIN ERROR ===");
+  console.log("Error code:", error?.code);
+  console.log("HTTP status:", error?.response?.status);
+  console.log("Server message:", error?.response?.data?.message);
+  console.log("Server response:", JSON.stringify(error?.response?.data));
+  console.log("Request URL:", error?.config?.url);
+  console.log("==================");
+
+   const errorMessage =
+    error?.response?.data?.message   // backend error message
+    ?? error?.message                  // axios error message
+    ?? "Unknown error occurred";
+
       // ECONNABORTED = timeout, ENOTFOUND = no internet
 
       Alert.alert(
-        "Login Failed",
-        error.code === "ECONNABORTED"
-          ? "Server is waking up. Please try again in 30 seconds."
-          : (error.response?.data?.message ?? "Check your connection."),
-        [{ text: "OK" }],
-      );
+    "Login Failed",
+    `${errorMessage}\n\nStatus: ${error?.response?.status ?? "No response"}`,
+    // show status code so you know what type of error it is
+    [{ text: "OK" }]
+  );
     } finally {
       setIsLoading(false);
     }
