@@ -61,7 +61,7 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
     }
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(time)) {
-      Alert.alert("Invalid Time", "Enter time in HH:MM format e.g. 08:00");
+      Alert.alert("Invalid Time", "Enter time as HH:MM e.g. 08:00");
       return;
     }
     setLoading(true);
@@ -73,12 +73,14 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
         scheduledTimes: [time],
         startDate: new Date().toISOString().split("T")[0],
       });
-      setName("");
-      setDosage("");
-      setTime("08:00");
+      setName(""); setDosage(""); setTime("08:00");
       onClose();
-    } catch {
-      Alert.alert("Failed", "Could not add medication. Try again.");
+    } catch (err: any) {
+      console.error("AddMed error:", err.response?.data ?? err.message);
+      Alert.alert(
+        "Failed",
+        err.response?.data?.message ?? "Could not add medication. Try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -90,170 +92,162 @@ function AddMedModal({ visible, onClose, onAdd }: AddMedModalProps) {
       transparent
       animationType="slide"
       statusBarTranslucent
+      onRequestClose={onClose}
     >
-      {/* TouchableWithoutFeedback dismisses keyboard when tapping outside */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
-
+        <View style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          justifyContent: "flex-end",
+        }}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            // iOS needs "padding" — adds padding below content to push it up
-            // Android needs "height" — reduces the view height to fit above keyboard
-            // without this the keyboard slides over the modal
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              {/* second TouchableWithoutFeedback prevents the inner tap from
-                  bubbling up and closing the modal when tapping inside it */}
               <View style={{
                 backgroundColor: "#111827",
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                paddingHorizontal: 24,
-                paddingTop: 16,
                 paddingBottom: Platform.OS === "ios" ? 40 : 24,
-                // extra bottom padding on iOS for home indicator
               }}>
-
-                {/* Handle bar */}
+                {/* Handle */}
                 <View style={{
                   width: 40, height: 4, borderRadius: 2,
-                  backgroundColor: "#1f2937",
+                  backgroundColor: "#374151",
                   alignSelf: "center",
+                  marginTop: 12,
                   marginBottom: 16,
                 }} />
 
-                {/* Header row with close button */}
+                {/* Header */}
                 <View style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  paddingHorizontal: 20,
                   marginBottom: 20,
                 }}>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: "#f9fafb" }}>
                     Add Medication
                   </Text>
                   <TouchableOpacity
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      onClose();
-                    }}
-                    style={{
-                      width: 30, height: 30,
-                      borderRadius: 15,
-                      backgroundColor: "#1f2937",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ color: "#9ca3af", fontSize: 16 }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Medication Name */}
-                <View style={{ marginBottom: 14 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Medication Name *
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e",
-                      borderRadius: 12, padding: 13,
-                      color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="e.g. Aspirin, Paracetamol"
-                    placeholderTextColor="#6b7280"
-                    value={name}
-                    onChangeText={setName}
-                    returnKeyType="next"
-                    // "next" shows a Next button on the keyboard
-                    // instead of Done — moves focus to next input
-                  />
-                </View>
-
-                {/* Dosage */}
-                <View style={{ marginBottom: 14 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Dosage *
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e",
-                      borderRadius: 12, padding: 13,
-                      color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="e.g. 500mg, 1 tablet, 2 capsules"
-                    placeholderTextColor="#6b7280"
-                    value={dosage}
-                    onChangeText={setDosage}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                {/* Time */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Reminder Time (24hr format) *
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e",
-                      borderRadius: 12, padding: 13,
-                      color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="e.g. 08:00 or 14:30"
-                    placeholderTextColor="#6b7280"
-                    value={time}
-                    onChangeText={setTime}
-                    keyboardType="numbers-and-punctuation"
-                    returnKeyType="done"
-                    onSubmitEditing={Keyboard.dismiss}
-                    // dismisses keyboard when user taps Done
-                  />
-                  <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
-                    Use 24-hour format · 08:00 = 8am · 20:00 = 8pm
-                  </Text>
-                </View>
-
-                {/* Buttons */}
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
                     onPress={() => { Keyboard.dismiss(); onClose(); }}
                     style={{
-                      flex: 1, backgroundColor: "#0a0f1e",
-                      borderRadius: 12, padding: 14, alignItems: "center",
-                      borderWidth: 1, borderColor: "#1f2937",
+                      width: 28, height: 28, borderRadius: 14,
+                      backgroundColor: "#1f2937",
+                      alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleAdd}
-                    disabled={loading}
-                    style={{
-                      flex: 1, backgroundColor: "#2563eb",
-                      borderRadius: 12, padding: 14, alignItems: "center",
-                    }}
-                  >
-                    {loading
-                      ? <ActivityIndicator color="white" size="small" />
-                      : <Text style={{ color: "white", fontWeight: "700" }}>Add Medication</Text>
-                    }
+                    <Text style={{ color: "#9ca3af", fontSize: 14 }}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {/* Name */}
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={{
+                      fontSize: 11, color: "#6b7280", marginBottom: 6,
+                      textTransform: "uppercase", letterSpacing: 0.8, fontWeight: "700",
+                    }}>
+                      Medication Name *
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#0a0f1e", borderRadius: 12,
+                        padding: 13, color: "#f9fafb", fontSize: 15,
+                        borderWidth: 1, borderColor: "#1f2937",
+                      }}
+                      placeholder="e.g. Paracetamol, Aspirin"
+                      placeholderTextColor="#6b7280"
+                      value={name}
+                      onChangeText={setName}
+                      returnKeyType="next"
+                      autoFocus
+                    />
+                  </View>
+
+                  {/* Dosage */}
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={{
+                      fontSize: 11, color: "#6b7280", marginBottom: 6,
+                      textTransform: "uppercase", letterSpacing: 0.8, fontWeight: "700",
+                    }}>
+                      Dosage *
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#0a0f1e", borderRadius: 12,
+                        padding: 13, color: "#f9fafb", fontSize: 15,
+                        borderWidth: 1, borderColor: "#1f2937",
+                      }}
+                      placeholder="e.g. 500mg, 1 tablet, 2 capsules"
+                      placeholderTextColor="#6b7280"
+                      value={dosage}
+                      onChangeText={setDosage}
+                      returnKeyType="next"
+                    />
+                  </View>
+
+                  {/* Time */}
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 11, color: "#6b7280", marginBottom: 6,
+                      textTransform: "uppercase", letterSpacing: 0.8, fontWeight: "700",
+                    }}>
+                      Reminder Time (24hr) *
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: "#0a0f1e", borderRadius: 12,
+                        padding: 13, color: "#f9fafb", fontSize: 15,
+                        borderWidth: 1, borderColor: "#1f2937",
+                      }}
+                      placeholder="08:00"
+                      placeholderTextColor="#6b7280"
+                      value={time}
+                      onChangeText={setTime}
+                      keyboardType="numbers-and-punctuation"
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
+                    />
+                    <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
+                      24hr format · 08:00 = 8am · 20:30 = 8:30pm
+                    </Text>
+                  </View>
+
+                  {/* Buttons */}
+                  <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => { Keyboard.dismiss(); onClose(); }}
+                      style={{
+                        flex: 1, backgroundColor: "#0a0f1e",
+                        borderRadius: 12, padding: 14, alignItems: "center",
+                        borderWidth: 1, borderColor: "#1f2937",
+                      }}
+                    >
+                      <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleAdd}
+                      disabled={loading}
+                      style={{
+                        flex: 1, backgroundColor: "#2563eb",
+                        borderRadius: 12, padding: 14, alignItems: "center",
+                        opacity: loading ? 0.7 : 1,
+                      }}
+                    >
+                      {loading
+                        ? <ActivityIndicator color="white" size="small" />
+                        : <Text style={{ color: "white", fontWeight: "700" }}>Add</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
               </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
@@ -277,12 +271,19 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
   const [loading, setLoading] = useState(false);
 
   const handleAdd = async () => {
-    if (!name.trim() || !phone.trim()) {
-      Alert.alert("Required", "Name and phone number are required.");
+    if (!name.trim()) {
+      Alert.alert("Required", "Please enter a name.");
+      return;
+    }
+    if (!phone.trim()) {
+      Alert.alert("Required", "Please enter a phone number.");
       return;
     }
     if (!phone.startsWith("+")) {
-      Alert.alert("Invalid Phone", "Enter phone in international format\ne.g. +2348012345678");
+      Alert.alert(
+        "Invalid Phone",
+        "Phone must start with + and country code.\nExample: +2348012345678"
+      );
       return;
     }
     setLoading(true);
@@ -292,22 +293,33 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
         phoneNumber: phone.trim(),
         relationship: relationship.trim() || undefined,
       });
-      setName("");
-      setPhone("");
-      setRelationship("");
+      setName(""); setPhone(""); setRelationship("");
       onClose();
     } catch (err: any) {
-      Alert.alert("Failed", err.response?.data?.message ?? "Could not add caregiver.");
+      console.error("AddCaregiver error:", err.response?.status, err.response?.data);
+      Alert.alert(
+        "Failed",
+        err.response?.data?.message ?? "Could not add caregiver. Try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
-
+        <View style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          justifyContent: "flex-end",
+        }}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
@@ -316,21 +328,20 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
                 backgroundColor: "#111827",
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                paddingHorizontal: 24,
-                paddingTop: 16,
                 paddingBottom: Platform.OS === "ios" ? 40 : 24,
               }}>
-
                 <View style={{
                   width: 40, height: 4, borderRadius: 2,
-                  backgroundColor: "#1f2937",
-                  alignSelf: "center", marginBottom: 16,
+                  backgroundColor: "#374151",
+                  alignSelf: "center",
+                  marginTop: 12, marginBottom: 16,
                 }} />
 
                 <View style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  paddingHorizontal: 20,
                   marginBottom: 20,
                 }}>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: "#f9fafb" }}>
@@ -339,114 +350,107 @@ function AddCaregiverModal({ visible, onClose, onAdd }: AddCaregiverModalProps) 
                   <TouchableOpacity
                     onPress={() => { Keyboard.dismiss(); onClose(); }}
                     style={{
-                      width: 30, height: 30, borderRadius: 15,
+                      width: 28, height: 28, borderRadius: 14,
                       backgroundColor: "#1f2937",
                       alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <Text style={{ color: "#9ca3af", fontSize: 16 }}>✕</Text>
+                    <Text style={{ color: "#9ca3af", fontSize: 14 }}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Name */}
-                <View style={{ marginBottom: 14 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Full Name *
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e", borderRadius: 12,
-                      padding: 13, color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="e.g. Dr. Adaeze"
-                    placeholderTextColor="#6b7280"
-                    value={name}
-                    onChangeText={setName}
-                    returnKeyType="next"
-                  />
-                </View>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 20 }}
+                >
+                  {[
+                    {
+                      label: "Full Name *",
+                      value: name,
+                      setter: setName,
+                      placeholder: "e.g. Dr. Adaeze",
+                      keyboard: "default" as const,
+                      caps: "words" as const,
+                    },
+                    {
+                      label: "Phone Number *",
+                      value: phone,
+                      setter: setPhone,
+                      placeholder: "+2348012345678",
+                      keyboard: "phone-pad" as const,
+                      caps: "none" as const,
+                    },
+                    {
+                      label: "Relationship (optional)",
+                      value: relationship,
+                      setter: setRelationship,
+                      placeholder: "e.g. Doctor, Mother, Friend",
+                      keyboard: "default" as const,
+                      caps: "words" as const,
+                    },
+                  ].map((field, index, arr) => (
+                    <View key={field.label} style={{ marginBottom: 14 }}>
+                      <Text style={{
+                        fontSize: 11, color: "#6b7280", marginBottom: 6,
+                        textTransform: "uppercase", letterSpacing: 0.8, fontWeight: "700",
+                      }}>
+                        {field.label}
+                      </Text>
+                      <TextInput
+                        style={{
+                          backgroundColor: "#0a0f1e", borderRadius: 12,
+                          padding: 13, color: "#f9fafb", fontSize: 15,
+                          borderWidth: 1, borderColor: "#1f2937",
+                        }}
+                        placeholder={field.placeholder}
+                        placeholderTextColor="#6b7280"
+                        value={field.value}
+                        onChangeText={field.setter}
+                        keyboardType={field.keyboard}
+                        autoCapitalize={field.caps}
+                        autoCorrect={false}
+                        returnKeyType={index < arr.length - 1 ? "next" : "done"}
+                        onSubmitEditing={
+                          index === arr.length - 1 ? Keyboard.dismiss : undefined
+                        }
+                      />
+                      {field.label === "Phone Number *" && (
+                        <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
+                          Include country code e.g. +234 for Nigeria
+                        </Text>
+                      )}
+                    </View>
+                  ))}
 
-                {/* Phone */}
-                <View style={{ marginBottom: 14 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Phone Number *
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e", borderRadius: 12,
-                      padding: 13, color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="+2348012345678"
-                    placeholderTextColor="#6b7280"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    returnKeyType="next"
-                  />
-                  <Text style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>
-                    Must start with + and country code
-                  </Text>
-                </View>
+                  <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => { Keyboard.dismiss(); onClose(); }}
+                      style={{
+                        flex: 1, backgroundColor: "#0a0f1e",
+                        borderRadius: 12, padding: 14, alignItems: "center",
+                        borderWidth: 1, borderColor: "#1f2937",
+                      }}
+                    >
+                      <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
+                    </TouchableOpacity>
 
-                {/* Relationship */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{
-                    fontSize: 11, color: "#6b7280",
-                    marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.8,
-                  }}>
-                    Relationship (optional)
-                  </Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: "#0a0f1e", borderRadius: 12,
-                      padding: 13, color: "#f9fafb", fontSize: 15,
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                    placeholder="e.g. Doctor, Mother, Brother"
-                    placeholderTextColor="#6b7280"
-                    value={relationship}
-                    onChangeText={setRelationship}
-                    returnKeyType="done"
-                    onSubmitEditing={Keyboard.dismiss}
-                  />
-                </View>
-
-                {/* Buttons */}
-                <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => { Keyboard.dismiss(); onClose(); }}
-                    style={{
-                      flex: 1, backgroundColor: "#0a0f1e",
-                      borderRadius: 12, padding: 14, alignItems: "center",
-                      borderWidth: 1, borderColor: "#1f2937",
-                    }}
-                  >
-                    <Text style={{ color: "#9ca3af", fontWeight: "600" }}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleAdd}
-                    disabled={loading}
-                    style={{
-                      flex: 1, backgroundColor: "#2563eb",
-                      borderRadius: 12, padding: 14, alignItems: "center",
-                    }}
-                  >
-                    {loading
-                      ? <ActivityIndicator color="white" size="small" />
-                      : <Text style={{ color: "white", fontWeight: "700" }}>Add Caregiver</Text>
-                    }
-                  </TouchableOpacity>
-                </View>
-
+                    <TouchableOpacity
+                      onPress={handleAdd}
+                      disabled={loading}
+                      style={{
+                        flex: 1, backgroundColor: "#2563eb",
+                        borderRadius: 12, padding: 14, alignItems: "center",
+                        opacity: loading ? 0.7 : 1,
+                      }}
+                    >
+                      {loading
+                        ? <ActivityIndicator color="white" size="small" />
+                        : <Text style={{ color: "white", fontWeight: "700" }}>Add Caregiver</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
               </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>

@@ -1,19 +1,17 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { User } from "../types";
+import { setApiToken } from "../services/api";
+// import the cache setter
 
-// define the shape of the store
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-
-  // actions — functions stored alongside data in Zustand
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => Promise<void>;
-  // Promise<void> = async function that returns nothing
   logout: () => Promise<void>;
-  setLoading: (isLoading: boolean) => void;
+  setLoading: (loading: boolean) => void;
 }
 
 const useAuthStore = create<AuthState>((set) => ({
@@ -21,48 +19,39 @@ const useAuthStore = create<AuthState>((set) => ({
   token: null,
   isLoading: false,
 
-  setUser: (user: User | null) => {
-    console.log("authStore: setUser:", user?.email ?? "null");
+  setUser: (user) => {
+    if (user === null) {
+      console.log("authStore: setUser null — ignored to protect existing user");
+      return;
+    }
+    console.log("authStore: setUser:", user.email);
     set({ user });
   },
 
-  setToken: async (token: string | null) => {
-    console.log("authStore: setToken called, token present:", !!token);
+  setToken: async (token) => {
+    console.log("authStore: setToken:", !!token);
     set({ token });
+
+    // sync with API cache immediately
+    setApiToken(token);
+    // this ensures the interceptor has the token
+    // before any API call is made
 
     if (token) {
       await SecureStore.setItemAsync("vitalsync_token", token);
-      console.log("authStore: token saved to SecureStore");
     } else {
       await SecureStore.deleteItemAsync("vitalsync_token");
-      console.log("authStore: token removed from SecureStore");
     }
   },
 
   logout: async () => {
-    console.log("authStore: logging out");
-
-    try {
-      await SecureStore.deleteItemAsync("vitalsync_token");
-
-      set({
-        user: null,
-        token: null,
-      });
-
-      console.log("authStore: logout complete");
-    } catch (error) {
-      console.error("authStore: logout error:", error);
-
-      // Still clear local state
-      set({
-        user: null,
-        token: null,
-      });
-    }
+    console.log("authStore: logout");
+    setApiToken(null);
+    await SecureStore.deleteItemAsync("vitalsync_token");
+    set({ user: null, token: null });
   },
 
-  setLoading: (isLoading: boolean) => set({ isLoading }),
+  setLoading: (isLoading) => set({ isLoading }),
 }));
 
 export default useAuthStore;

@@ -12,7 +12,7 @@ import {
   registerForPushNotifications,
 } from "../src/services/notifications";
 
-import api from "../src/services/api";
+import api, { setApiToken } from "../src/services/api";
 
 export default function RootLayout() {
   const { token, setToken, setLoading, setUser } = useAuthStore();
@@ -26,24 +26,16 @@ export default function RootLayout() {
       setLoading(true);
       try {
         const saved = await SecureStore.getItemAsync("vitalsync_token");
-          console.log("_layout: stored token found:", !!saved);
+        console.log("_layout: stored token found:", !!saved);
         if (saved) {
           await setToken(saved);
+          setApiToken(saved);
+
           try {
             const res = await api.get("/api/v1/auth/profile");
-            setUser(res.data.user);
-
-            // register for push notifications and send token to backend
-            const pushToken = await registerForPushNotifications();
-            if (pushToken) {
-              await api.post("/api/v1/alerts/fcm-token", {
-                fcmToken: pushToken,
-              });
-
-              console.log("Push token registered with backend");
-            }
+            const user = res.data.user ?? res.data.data;
+            if (user) setUser(user);
           } catch {
-            console.log("Session restore failed");
             await SecureStore.deleteItemAsync("vitalsync_token");
             await setToken(null);
           }
@@ -57,10 +49,9 @@ export default function RootLayout() {
     restoreSession();
   }, [setLoading, setToken, setUser]);
 
-  
-
   useEffect(() => {
     requestNotificationPermission();
+    void registerForPushNotifications();
 
     const cleanup = setupNotificationListeners(
       (medicationId) => {
