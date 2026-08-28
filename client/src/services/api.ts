@@ -46,11 +46,15 @@ api.interceptors.request.use(
       }
 
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log(
-          `📤 ${config.method?.toUpperCase()} ${config.url} [authenticated]`
-        );
-      } else {
+  config.headers.Authorization = `Bearer ${token}`;
+
+  console.log(
+    `📤 ${config.method?.toUpperCase()} ${config.url} [authenticated]`
+  );
+
+  console.log(" Token exists:", !!token);
+  console.log(" Token parts:", token.split(".").length);
+} else {
         console.log(
           `📤 ${config.method?.toUpperCase()} ${config.url} [NO TOKEN]`
         );
@@ -74,6 +78,7 @@ api.interceptors.response.use(
     console.log(`✅ ${response.status} ${response.config.url}`);
     return response;
   },
+
   async (error: AxiosError) => {
     console.error("❌ API Error:", {
       status: error.response?.status,
@@ -82,9 +87,10 @@ api.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      console.log("401 detected — clearing token cache");
-      cachedToken = null;
-      await SecureStore.deleteItemAsync("vitalsync_token");
+      console.log("⚠️ 401 received from:", error.config?.url);
+
+      // DO NOT clear the token automatically for now
+      console.log("Token was NOT cleared");
     }
 
     return Promise.reject(error);

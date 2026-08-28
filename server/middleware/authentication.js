@@ -31,6 +31,10 @@ export const authenticate = async (req, res, next) => {
     next();
 
   } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
+  console.error("❌ JWT VERIFICATION ERROR:", err.message);
+
+  return res.status(401).json({
+    message: "Invalid token",
+  });
+}
 };
