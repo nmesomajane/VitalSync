@@ -34,8 +34,7 @@ const useAuthStore = create<AuthState>((set) => ({
 
     // sync with API cache immediately
     setApiToken(token);
-    // this ensures the interceptor has the token
-    // before any API call is made
+    
 
     if (token) {
       await SecureStore.setItemAsync("vitalsync_token", token);

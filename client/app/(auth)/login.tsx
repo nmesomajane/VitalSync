@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import useAuthStore from "../../src/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 
 import { AuthResponse, FormErrors, LoginPayload } from "../../src/types";
+import { useRouter } from "expo-router";
+
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -33,6 +35,9 @@ export default function LoginScreen() {
 
   const { setUser, setToken } = useAuthStore();
   const [slowConnection, setSlowConnection] = useState(false);
+
+const router = useRouter();
+  
 
   const validate = (): boolean => {
     const newErrors: FormErrors<LoginPayload> = {};
@@ -54,6 +59,8 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async (): Promise<void> => {
+   
+   
     if (!validate()) return;
     setIsLoading(true);
     setSlowConnection(false);
@@ -73,8 +80,13 @@ export default function LoginScreen() {
       clearTimeout(slowTimer);
       setSlowConnection(false);
 
-      setUser(response.data.user);
-      await setToken(response.data.token);
+    setUser(response.data.user);
+await setToken(response.data.token);
+
+console.log("✅ Login successful");
+console.log("🚀 Navigating to dashboard...");
+
+router.replace("/(tabs)");
     }
      catch (error: any) {
       clearTimeout(slowTimer);
@@ -105,6 +117,11 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+  console.log("🔥 LOGIN SCREEN LOADED");
+}, []);
+  
 
   return (
     <KeyboardAvoidingView
