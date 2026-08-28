@@ -87,10 +87,8 @@ api.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      console.log("⚠️ 401 received from:", error.config?.url);
-
-      // DO NOT clear the token automatically for now
-      console.log("Token was NOT cleared");
+      console.log("⚠️ 401 detected:", error.config?.url);
+      console.log("⚠️ Token NOT cleared during debugging");
     }
 
     return Promise.reject(error);
