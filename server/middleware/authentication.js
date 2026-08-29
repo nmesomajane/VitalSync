@@ -51,7 +51,7 @@ export const authenticate = async (req, res, next) => {
       return next();
     }
 
-    const user = await userRepository.findById(decoded.id);
+    const user = await UserRepository.findById(decoded.id);
 
     if (!user) {
       return res.status(401).json({
