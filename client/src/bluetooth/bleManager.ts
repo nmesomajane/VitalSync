@@ -1,112 +1,287 @@
-
-import { BleManager, Device } from "react-native-ble-plx";
-import {
-  BLE_SERVICE_UUID,
-  BLE_CHARACTERISTICS,
-  BLE_DEVICE_NAME,
-  ECG_TOTAL_FRAGMENTS,
-  ECG_TOTAL_SAMPLES,
-} from "./bleConstants";
-import {
-  decodePacket,
-  VitalsPacket,
-  ClassificationPacket,
-  ECGFragment,
-  vitalsToAPIBody,
-} from "./packetDecoder";
+import { Platform } from "react-native";
+import * as Location from "expo-location";
+import useBLEStore from "../store/bleStore";
+import useVitalsStore from "../store/vitalsStore";
+import { decodePacket, VitalsPacket, ClassificationPacket, vitalsToAPIBody } from "./packetDecoder";
 import { encodeTimestampBase64 } from "./packetEncoder";
+import { BLE_SERVICE_UUID, BLE_CHARACTERISTICS, BLE_DEVICE_NAME, ECG_TOTAL_FRAGMENTS } from "./bleConstants";
 import api from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
 
+// lazy import — only loads when BLE is actually used
+// prevents crash in Expo Go where native module doesn't exist
+const getBleManager = async () => {
+  try {
+    const { BleManager } = await import("react-native-ble-plx");
+    return new BleManager();
+  } catch  {
+    console.log("BLE: react-native-ble-plx not available");
+    return null;
+  }
+};
 
 interface MeasurementSession {
-  sequence: number;
   vitals: VitalsPacket | null;
   classification: ClassificationPacket | null;
-  ecgFragments: Map<number, ECGFragment>;
-
+  ecgFragments: Map<number, any>;
 }
 
 class VitalSyncBLEManager {
-  private manager: BleManager;
-  private connectedDevice: Device | null = null;
-  private currentSession: MeasurementSession | null = null;
+  private ble: any = null;
+  private device: any = null;
+  private session: MeasurementSession = {
+    vitals: null,
+    classification: null,
+    ecgFragments: new Map(),
+  };
   private offlineQueue: any[] = [];
+  private scanTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    this.manager = new BleManager();
-    this.restoreOfflineQueue();
+    this.loadOfflineQueue();
   }
 
-  // scan 
-  async startScan(onFound: (device: Device) => void): Promise<void> {
-    console.log("BLE: scanning for", BLE_DEVICE_NAME);
+  // ── initialise BLE manager lazily ─────────────────────────
+  private ensureManager(): boolean {
+    if (this.ble) return true;
+    this.ble = getBleManager();
+    return this.ble !== null;
+  }
 
-    this.manager.startDeviceScan(
-      [BLE_SERVICE_UUID],
+  // ── request permissions ───────────────────────────────────
+  async requestPermissions(): Promise<boolean> {
+    if (Platform.OS !== "android") return true;
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    // Android requires location permission for BLE scanning
+    // this is a Google policy — not something we can bypass
+    if (status !== "granted") {
+      console.log("BLE: location permission denied");
+      useBLEStore.getState().setError(
+        "Location permission required to scan for Bluetooth devices. Please enable it in Settings."
+      );
+      return false;
+    }
+
+    console.log("BLE: permissions granted");
+    return true;
+  }
+
+  // ── scan for VitalSync device ─────────────────────────────
+  async startScan(): Promise<void> {
+    if (!this.ensureManager()) {
+      useBLEStore.getState().setError(
+        "Bluetooth not available. Make sure this is a development build, not Expo Go."
+      );
+      return;
+    }
+
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return;
+
+    const bleStore = useBLEStore.getState();
+    bleStore.setConnectionState("scanning");
+
+    console.log("BLE: starting scan for", BLE_DEVICE_NAME);
+
+    // check Bluetooth is on
+    const state = await this.ble.state();
+    if (state !== "PoweredOn") {
+      bleStore.setError(
+        "Bluetooth is turned off. Please enable Bluetooth and try again."
+      );
+      return;
+    }
+
+    this.ble.startDeviceScan(
+      null,
+      // null = scan all services — find by name instead
+      // filtering by service UUID can miss some Android devices
       { allowDuplicates: false },
-      (error, device) => {
+      (error: any, device: any) => {
         if (error) {
           console.error("BLE scan error:", error.message);
+          bleStore.setError(`Scan failed: ${error.message}`);
           return;
         }
+
         if (device?.name === BLE_DEVICE_NAME) {
-         
-          console.log("BLE: device found:", device.id);
-          this.manager.stopDeviceScan();
-          onFound(device);
+          console.log("BLE: found", device.name, "RSSI:", device.rssi);
+          useBLEStore.getState().setRSSI(device.rssi);
+          // don't connect here — return device to the UI
+          // user confirms which device to connect to
         }
       }
     );
+
+    // auto-stop scan after 20 seconds
+    this.scanTimeout = setTimeout(() => {
+      this.stopScan();
+      if (bleStore.connectionState === "scanning") {
+        bleStore.setConnectionState("disconnected");
+        console.log("BLE: scan timed out — no device found");
+      }
+    }, 20000);
   }
 
-  //  connect 
-  async connect(device: Device): Promise<void> {
-    console.log("BLE: connecting to", device.name);
-    this.connectedDevice = await device.connect();
-    await this.connectedDevice.discoverAllServicesAndCharacteristics();
-    console.log("BLE: connected — syncing time");
-
-   
-    await this.syncTime();
-    this.startListening();
-  }
-
-  //  time sync 
-  private async syncTime(): Promise<void> {
-    if (!this.connectedDevice) return;
-
-    try {
-      await this.connectedDevice.writeCharacteristicWithResponseForService(
-        BLE_SERVICE_UUID,
-        BLE_CHARACTERISTICS.CONTROL,
-        encodeTimestampBase64()
-      
+  // ── scan and return found devices ──────────────────────────
+  async scanForDevices(
+    onDeviceFound: (device: any) => void
+  ): Promise<void> {
+    if (!this.ensureManager()) {
+      useBLEStore.getState().setError(
+        "Bluetooth not available on this build."
       );
-      console.log("BLE: time synced successfully");
-    } catch (err: any) {
-      console.error("BLE: time sync failed:", err.message);
-   
+      return;
+    }
+
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return;
+
+    const state = await this.ble.state();
+    console.log("BLE: Bluetooth state:", state);
+
+    if (state !== "PoweredOn") {
+      useBLEStore.getState().setError(
+        "Please turn on Bluetooth and try again."
+      );
+      return;
+    }
+
+    useBLEStore.getState().setConnectionState("scanning");
+    console.log("BLE: scanning...");
+
+    const foundIds = new Set<string>();
+
+    this.ble.startDeviceScan(
+      null,
+      { allowDuplicates: false },
+      (error: any, device: any) => {
+        if (error) {
+          console.error("BLE scan error:", error.reason ?? error.message);
+          useBLEStore.getState().setError(error.reason ?? "Scan error");
+          return;
+        }
+
+        if (
+          device?.name?.includes("VitalSync") &&
+          !foundIds.has(device.id)
+        ) {
+          foundIds.add(device.id);
+          console.log("BLE: device found:", device.name, device.id);
+          onDeviceFound(device);
+        }
+      }
+    );
+
+    // stop after 20 seconds
+    this.scanTimeout = setTimeout(() => {
+      this.stopScan();
+      console.log("BLE: scan complete");
+      if (useBLEStore.getState().connectionState === "scanning") {
+        useBLEStore.getState().setConnectionState("disconnected");
+      }
+    }, 20000);
+  }
+
+  stopScan(): void {
+    if (this.ble) {
+      this.ble.stopDeviceScan();
+      console.log("BLE: scan stopped");
+    }
+    if (this.scanTimeout) {
+      clearTimeout(this.scanTimeout);
+      this.scanTimeout = null;
     }
   }
 
-  // listen for data notifications 
-  private startListening(): void {
-    if (!this.connectedDevice) return;
+  // ── connect to a specific device ──────────────────────────
+  async connectToDevice(device: any): Promise<boolean> {
+    if (!this.ble) return false;
 
-    this.connectedDevice.monitorCharacteristicForService(
+    const bleStore = useBLEStore.getState();
+    bleStore.setConnectionState("connecting");
+    this.stopScan();
+
+    console.log("BLE: connecting to", device.name);
+
+    try {
+      this.device = await this.ble.connectToDevice(device.id, {
+        autoConnect: false,
+        timeout: 10000,
+        // timeout after 10 seconds if connection fails
+      });
+
+      console.log("BLE: connected — discovering services");
+
+      await this.device.discoverAllServicesAndCharacteristics();
+      // must discover before reading or writing any characteristic
+
+      console.log("BLE: services discovered");
+
+      // sync ESP32 clock immediately after connecting
+      await this.syncTime();
+
+      // subscribe to data notifications
+      this.startListening();
+
+      // handle unexpected disconnection
+      this.device.onDisconnected((error: any, device: any) => {
+        console.log("BLE: device disconnected", error?.message);
+        bleStore.setDisconnected();
+        this.device = null;
+        this.resetSession();
+      });
+
+      bleStore.setConnected(device.name, device.id);
+      console.log("BLE: fully connected and listening");
+      return true;
+
+    } catch (err: any) {
+      console.error("BLE: connection failed:", err.message);
+      bleStore.setError(`Connection failed: ${err.reason ?? err.message}`);
+      this.device = null;
+      return false;
+    }
+  }
+
+  // ── sync ESP32 clock ──────────────────────────────────────
+  private async syncTime(): Promise<void> {
+    if (!this.device) return;
+    try {
+      await this.device.writeCharacteristicWithResponseForService(
+        BLE_SERVICE_UUID,
+        BLE_CHARACTERISTICS.CONTROL,
+        encodeTimestampBase64()
+      );
+      console.log("BLE: time synced");
+    } catch (err: any) {
+      console.log("BLE: time sync failed (non-fatal):", err.message);
+    }
+  }
+
+  // ── listen for incoming packets ───────────────────────────
+  private startListening(): void {
+    if (!this.device) return;
+
+    console.log("BLE: subscribing to data notifications");
+
+    this.device.monitorCharacteristicForService(
       BLE_SERVICE_UUID,
       BLE_CHARACTERISTICS.DATA,
-      
-      async (error, characteristic) => {
+      async (error: any, characteristic: any) => {
         if (error) {
+          if (error.errorCode === 201) return;
+          // 201 = operation cancelled (normal on disconnect)
           console.error("BLE notification error:", error.message);
           return;
         }
+
         if (!characteristic?.value) return;
 
-        // characteristic.value is base64 encoded
+        useBLEStore.getState().incrementPackets();
+
         const bytes = Buffer.from(characteristic.value, "base64");
         const data = Array.from(bytes) as number[];
 
@@ -118,190 +293,128 @@ class VitalSyncBLEManager {
         }
       }
     );
-
-    console.log("BLE: listening for measurement notifications");
   }
 
-  // packet router 
-  private async handlePacket(packet: ReturnType<typeof decodePacket>): Promise<void> {
+  // ── route packets by type ─────────────────────────────────
+  private async handlePacket(packet: any): Promise<void> {
     if (packet.type === "vitals") {
-      
-      console.log("BLE: vitals packet received — starting new measurement session");
-      this.currentSession = {
-        sequence: 0,
-        vitals: packet,
-        classification: null,
-        ecgFragments: new Map(),
-      };
+      console.log("BLE: vitals —", packet.heartRate, "bpm,", packet.spO2, "%");
+      this.resetSession();
+      this.session.vitals = packet;
 
     } else if (packet.type === "classification") {
-      // classification arrives SECOND
-      console.log(
-        "BLE: classification packet —",
-        packet.overallClassificationLabel,
-        `(${packet.confidence}% confidence)`
-      );
-
-      if (this.currentSession) {
-        this.currentSession.classification = packet;
-        this.currentSession.sequence = packet.measurementSequence;
-      }
+      console.log("BLE: classification —", packet.overallClassificationLabel);
+      this.session.classification = packet;
 
     } else if (packet.type === "ecg_fragment") {
-      // ECG fragments arrive THIRD — 143 of them
-      if (!this.currentSession) {
-        console.warn("BLE: ECG fragment received without an active session");
-        return;
-      }
+      this.session.ecgFragments.set(packet.fragmentIndex, packet);
 
-      this.currentSession.ecgFragments.set(
-        packet.fragmentIndex,
-        packet
-    
-      );
-
-      console.log(
-        `BLE: ECG fragment ${packet.fragmentIndex}/${ECG_TOTAL_FRAGMENTS - 1}`,
-        `(${this.currentSession.ecgFragments.size}/${ECG_TOTAL_FRAGMENTS} received)`
-      );
-
-      // check if we have all fragments
-      if (this.currentSession.ecgFragments.size === ECG_TOTAL_FRAGMENTS) {
+      if (this.session.ecgFragments.size === ECG_TOTAL_FRAGMENTS) {
         await this.completeMeasurement();
       }
     }
   }
 
-  //complete a full measurement and send to cloud 
+  // ── assemble and upload complete measurement ──────────────
   private async completeMeasurement(): Promise<void> {
-    const session = this.currentSession;
-    if (!session || !session.vitals) return;
+    const { vitals, classification, ecgFragments } = this.session;
+    if (!vitals) return;
 
-    console.log("BLE: measurement complete — assembling ECG");
-
-
-    const missingFragments: number[] = [];
+    // validate all fragments received
     for (let i = 0; i < ECG_TOTAL_FRAGMENTS; i++) {
-      if (!session.ecgFragments.has(i)) {
-        missingFragments.push(i);
+      if (!ecgFragments.has(i)) {
+        console.error("BLE: missing fragment", i, "— discarding measurement");
+        this.resetSession();
+        return;
       }
     }
 
-    if (missingFragments.length > 0) {
-      console.error(
-        "BLE: measurement incomplete — missing fragments:",
-        missingFragments
-      );
-     
-      this.currentSession = null;
-      return;
-    }
-
-   
+    // assemble ECG samples in order
     const ecgSamples: number[] = [];
     for (let i = 0; i < ECG_TOTAL_FRAGMENTS; i++) {
-      const fragment = session.ecgFragments.get(i)!;
-      ecgSamples.push(...fragment.samples);
+      ecgSamples.push(...ecgFragments.get(i)!.samples);
     }
 
-    console.log(
-      `BLE: ECG assembled — ${ecgSamples.length} samples`,
-      `(expected ${ECG_TOTAL_SAMPLES})`
-    );
+    console.log("BLE: measurement complete —", ecgSamples.length, "ECG samples");
 
-    if (ecgSamples.length !== ECG_TOTAL_SAMPLES) {
-      console.error("BLE: wrong sample count — discarding measurement");
-      this.currentSession = null;
-      return;
+    const apiBody = vitalsToAPIBody(vitals, classification, ecgSamples);
+
+    // update vitals store so dashboard updates immediately
+    if (vitals.heartRate || vitals.spO2) {
+      useVitalsStore.getState().setLatestVitals({
+        ...apiBody,
+        id: Date.now().toString(),
+        userId: "",
+        hasAnomaly: false,
+        anomalyDetails: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any);
     }
 
-    // build API body from all three packet types
-    const apiBody = vitalsToAPIBody(
-      session.vitals,
-      session.classification,
-      ecgSamples
-    );
+    useBLEStore.getState().setLastReadingAt(new Date().toISOString());
+    useBLEStore.getState().resetPackets();
 
-    console.log("BLE: sending measurement to cloud:", {
-      heartRate: apiBody.heartRate,
-      spO2: apiBody.spO2,
-      temperature: apiBody.bodyTemperature,
-      ecgSamples: ecgSamples.length,
-      classification: apiBody.tinyMLClassification,
-      confidence: apiBody.tinyMLConfidence,
-    });
-
-    // send to backend
-    await this.sendToCloud(apiBody);
-
-    // clear session — ready for next measurement
-    this.currentSession = null;
+    await this.uploadToCloud(apiBody);
+    this.resetSession();
   }
 
-  //  cloud upload with offline fallback 
-  private async sendToCloud(data: any): Promise<void> {
+  private resetSession(): void {
+    this.session = {
+      vitals: null,
+      classification: null,
+      ecgFragments: new Map(),
+    };
+  }
+
+  // ── upload to cloud with offline queue ───────────────────
+  private async uploadToCloud(data: any): Promise<void> {
     try {
-      const response = await api.post("/api/v1/vitals/reading", data);
-      console.log("BLE relay: uploaded successfully — health score:", response.data.data?.healthScore);
+      const res = await api.post("/api/v1/vitals/reading", data);
+      console.log("BLE: uploaded — health score:", res.data.data?.healthScore);
       await this.flushOfflineQueue();
     } catch {
-      console.log("BLE relay: cloud unavailable — queuing offline");
-      await this.addToOfflineQueue(data);
+      console.log("BLE: upload failed — queuing offline");
+      await this.addToQueue(data);
     }
   }
 
-  private async addToOfflineQueue(data: any): Promise<void> {
+  private async addToQueue(data: any): Promise<void> {
     this.offlineQueue.push({ ...data, queuedAt: Date.now() });
-    await AsyncStorage.setItem(
-      "ble_offline_queue",
-      JSON.stringify(this.offlineQueue)
-    );
-    console.log("BLE offline queue:", this.offlineQueue.length, "readings stored");
+    await AsyncStorage.setItem("ble_queue", JSON.stringify(this.offlineQueue));
   }
 
-  private async restoreOfflineQueue(): Promise<void> {
-    const stored = await AsyncStorage.getItem("ble_offline_queue");
-    if (stored) {
-      this.offlineQueue = JSON.parse(stored);
-      console.log("BLE: restored", this.offlineQueue.length, "offline readings");
-    }
+  private async loadOfflineQueue(): Promise<void> {
+    const stored = await AsyncStorage.getItem("ble_queue");
+    if (stored) this.offlineQueue = JSON.parse(stored);
   }
 
   private async flushOfflineQueue(): Promise<void> {
     if (this.offlineQueue.length === 0) return;
-
     const sent: number[] = [];
     for (let i = 0; i < this.offlineQueue.length; i++) {
       try {
         await api.post("/api/v1/vitals/reading", this.offlineQueue[i]);
         sent.push(i);
-      } catch {
-        break;
-      }
+      } catch { break; }
     }
-
     this.offlineQueue = this.offlineQueue.filter((_, i) => !sent.includes(i));
-    await AsyncStorage.setItem(
-      "ble_offline_queue",
-      JSON.stringify(this.offlineQueue)
-    );
-
-    if (sent.length > 0) {
-      console.log(`BLE: flushed ${sent.length} queued readings`);
-    }
+    await AsyncStorage.setItem("ble_queue", JSON.stringify(this.offlineQueue));
+    if (sent.length > 0) console.log("BLE: flushed", sent.length, "queued readings");
   }
 
   async disconnect(): Promise<void> {
-    if (this.connectedDevice) {
-      await this.connectedDevice.cancelConnection();
-      this.connectedDevice = null;
-      this.currentSession = null;
-      console.log("BLE: disconnected");
+    if (this.device) {
+      await this.device.cancelConnection().catch(() => {});
+      this.device = null;
     }
+    useBLEStore.getState().setDisconnected();
+    this.resetSession();
+    console.log("BLE: disconnected by user");
   }
 
   get isConnected(): boolean {
-    return this.connectedDevice !== null;
+    return this.device !== null;
   }
 }
 
