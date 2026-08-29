@@ -34,11 +34,14 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#2563eb",
-          "sounds": ["./assets/sounds/alarm.mp3"],
+          "sounds": [
+            "./assets/sounds/alarm.mp3"
+          ],
           "androidMode": "default",
           "androidCollapsedTitle": "VitalSync Alert"
         }
-      ]
+      ],
+      "react-native-ble-plx"
     ],
     "extra": {
       "eas": {
