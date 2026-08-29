@@ -9,8 +9,7 @@ import api from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
 
-// lazy import — only loads when BLE is actually used
-// prevents crash in Expo Go where native module doesn't exist
+
 const getBleManager = async () => {
   try {
     const { BleManager } = await import("react-native-ble-plx");
@@ -43,11 +42,13 @@ class VitalSyncBLEManager {
   }
 
   // ── initialise BLE manager lazily ─────────────────────────
-  private ensureManager(): boolean {
-    if (this.ble) return true;
-    this.ble = getBleManager();
-    return this.ble !== null;
-  }
+private async ensureManager(): Promise<boolean> {
+  if (this.ble) return true;
+
+  this.ble = await getBleManager();
+
+  return this.ble !== null;
+}
 
   // ── request permissions ───────────────────────────────────
   async requestPermissions(): Promise<boolean> {
@@ -70,7 +71,7 @@ class VitalSyncBLEManager {
 
   // ── scan for VitalSync device ─────────────────────────────
   async startScan(): Promise<void> {
-    if (!this.ensureManager()) {
+          if (!(await this.ensureManager())) {
       useBLEStore.getState().setError(
         "Bluetooth not available. Make sure this is a development build, not Expo Go."
       );
@@ -129,7 +130,7 @@ class VitalSyncBLEManager {
   async scanForDevices(
     onDeviceFound: (device: any) => void
   ): Promise<void> {
-    if (!this.ensureManager()) {
+    if (!(await this.ensureManager())) {
       useBLEStore.getState().setError(
         "Bluetooth not available on this build."
       );
