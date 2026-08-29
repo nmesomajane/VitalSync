@@ -15,6 +15,8 @@ import HealthScoreRing from "../../components/HealthScoreRing";
 import AlertBanner from "../../components/AlertBanner";
 import { triggerSOS } from "../../src/services/vitals";
 import { Colors } from "../../constants/colors";
+import DeviceConnectionSheet from "../../components/DeviceConnectionSheet";
+import useBLEStore from "../../src/store/bleStore";
 
 
 export default function DashboardScreen() {
@@ -23,6 +25,10 @@ export default function DashboardScreen() {
 
   const { isLoading } = useVitals();
   useSocket();
+  const [showBLESheet, setShowBLESheet] = useState(false);
+const { connectionState, deviceName,  } = useBLEStore();
+const bleConnected = connectionState === "connected";
+
 
   const insets = useSafeAreaInsets();
   const [sosLoading, setSosLoading] = useState(false);
@@ -258,6 +264,79 @@ export default function DashboardScreen() {
             </View>
           </View>
         )}
+
+        <TouchableOpacity
+  onPress={() => setShowBLESheet(true)}
+  style={{
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: bleConnected ? "#0d2a1a" : Colors.card,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: bleConnected ? "#16653440" : Colors.cardBorder,
+  }}
+  activeOpacity={0.85}
+>
+  {/* Icon */}
+  <View style={{
+    width: 38, height: 38,
+    borderRadius: 11,
+    backgroundColor: bleConnected ? "#10b98120" : `${Colors.primary}15`,
+    alignItems: "center",
+    justifyContent: "center",
+  }}>
+    <Ionicons
+      name={bleConnected ? "bluetooth" : "bluetooth-outline"}
+      size={20}
+      color={bleConnected ? "#10b981" : Colors.primary}
+    />
+  </View>
+
+  {/* Text */}
+  <View style={{ flex: 1 }}>
+    <Text style={{
+      fontSize: 13, fontWeight: "600", color: Colors.textPrimary,
+    }}>
+      {bleConnected
+        ? deviceName ?? "VitalSync-ESP32"
+        : "Connect Hardware Device"}
+    </Text>
+    <Text style={{ fontSize: 11, color: Colors.textMuted, marginTop: 2 }}>
+      {bleConnected
+        ? lastReadingAt
+          ? `Last reading: ${new Date(lastReadingAt).toLocaleTimeString()}`
+          : "Waiting for first measurement..."
+        : "Tap to pair via Bluetooth"}
+    </Text>
+  </View>
+
+  {/* Status badge */}
+  <View style={{
+    backgroundColor: bleConnected ? "#10b98115" : `${Colors.primary}15`,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: bleConnected ? "#10b98130" : `${Colors.primary}30`,
+  }}>
+    <Text style={{
+      fontSize: 10, fontWeight: "700", letterSpacing: 0.5,
+      color: bleConnected ? "#10b981" : Colors.primary,
+    }}>
+      {bleConnected ? "LIVE" : "CONNECT"}
+    </Text>
+  </View>
+</TouchableOpacity>
+
+{/* The BLE connection sheet */}
+<DeviceConnectionSheet
+  visible={showBLESheet}
+  onClose={() => setShowBLESheet(false)}
+/>
 
         {/* Health Score Card — unchanged */}
         <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
