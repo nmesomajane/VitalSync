@@ -1,11 +1,15 @@
 import * as axios from "axios";
-import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://vitalsync-gyfr.onrender.com";
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? "https://vitalsync-gyfr.onrender.com";
 
 console.log("API: connecting to:", API_URL);
-
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -19,8 +23,6 @@ console.log("Base URL:", API_URL);
 console.log("=================================");
 
 let cachedToken: string | null = null;
-
-
 
 // call this after every login and logout
 export const setApiToken = (token: string | null) => {
@@ -49,20 +51,19 @@ api.interceptors.request.use(
   config.headers.Authorization = `Bearer ${token}`;
 
   console.log(
-    `📤 ${config.method?.toUpperCase()} ${config.url} [authenticated]`
+    `📤 ${config.method?.toUpperCase()} ${config.url} [AUTHENTICATED]`
   );
 
-  console.log(" Token exists:", !!token);
-  console.log(" Token parts:", token.split(".").length);
+  console.log("🔑 API token exists:", !!token);
 } else {
-        console.log(
-          `📤 ${config.method?.toUpperCase()} ${config.url} [NO TOKEN]`
-        );
-      }
+  console.log(
+    `📤 ${config.method?.toUpperCase()} ${config.url} [NO TOKEN]`
+  );
+
+  console.log("🚨 API token is missing");
+}
     } else {
-      console.log(
-        `📤 ${config.method?.toUpperCase()} ${config.url} [public]`
-      );
+      console.log(`📤 ${config.method?.toUpperCase()} ${config.url} [public]`);
     }
 
     return config;
@@ -70,7 +71,7 @@ api.interceptors.request.use(
   (error) => {
     console.error("Request error:", error.message);
     return Promise.reject(error);
-  }
+  },
 );
 
 api.interceptors.response.use(
@@ -92,7 +93,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

@@ -29,23 +29,27 @@ export interface ECGData {
 
 // fetch latest stored ECG from database
 export const fetchLatestECG = async (): Promise<ECGData | null> => {
-  console.log("ecgService: fetching latest ECG from REST API");
+  console.log("🫀 ECG SERVICE: fetching latest ECG");
 
   try {
     const response = await api.get("/api/v1/vitals/ecg/latest");
-   
 
-    console.log("ecgService: ECG received, points:", response.data.data?.waveform?.length);
+    console.log("🫀 ECG SERVICE: status:", response.status);
+    console.log("🫀 ECG SERVICE: response:", response.data);
+
     return response.data.data ?? null;
 
   } catch (error: any) {
+    console.log("🫀 ECG SERVICE ERROR");
+    console.log("🫀 Status:", error?.response?.status);
+    console.log("🫀 Message:", error?.response?.data?.message);
+    console.log("🫀 Response:", error?.response?.data);
+
     if (error.response?.status === 404) {
-   
-      console.log("ecgService: no ECG data recorded yet");
+      console.log("🫀 ECG: NO DATA RECORDED YET");
       return null;
     }
-   
-    console.error("ecgService: failed to fetch ECG:", error.message);
+
     throw error;
   }
 };
