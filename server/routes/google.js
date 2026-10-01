@@ -3,7 +3,7 @@ import passport from "../auth/google.js";
 
 const router = express.Router();
 
-// Step 1 - Redirect user to Google login page
+//Step 1 - Redirect user to Google login page
 router.get("/google",
   passport.authenticate("google", {
     scope: ["email", "profile"],

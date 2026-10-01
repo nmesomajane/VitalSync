@@ -46,11 +46,9 @@ const DEFAULT_THRESHOLDS = {
 //  Health score weights
 
 const HEALTH_SCORE_WEIGHTS = {
-  heartRate: 0.3,
-  spO2: 0.3,
+  heartRate: 0.4,
+  spO2: 0.4,
   bodyTemperature: 0.2,
-  respiratoryRate: 0.15,
-  roomHumidity: 0.05,
 };
 
 class VitalsService {
@@ -121,79 +119,60 @@ class VitalsService {
   // Record a vital reading
 
   async recordVital({
+  userId,
+  heartRate,
+  spO2,
+  bodyTemperature,
+  ecgData,
+  io,
+}) {
+  const readings = {
+    heartRate,
+    spO2,
+    bodyTemperature,
+  };
+
+  const anomalies = this.checkThresholds(readings);
+  const hasAnomaly = Object.keys(anomalies).length > 0;
+  const healthScore = this.calculateHealthScore(readings);
+
+  const vital = await vitalsRepository.create({
     userId,
     heartRate,
     spO2,
     bodyTemperature,
-    respiratoryRate,
-    roomHumidity,
     ecgData,
+    hasAnomaly,
+    anomalydetails: hasAnomaly ? anomalies : null,
+  });
+
+  const alerts = await alertService.checkAndCreateAlerts({
+    userId,
+    readings,
     io,
-  }) {
-    const readings = {
-      heartRate,
-      spO2,
-      bodyTemperature,
-      respiratoryRate,
-      roomHumidity,
-    };
+  });
 
-    const anomalies = this.checkThresholds(readings);
-    const hasAnomaly = Object.keys(anomalies).length > 0;
-    const healthScore = this.calculateHealthScore(readings);
+  const payload = {
+    vital,
+    healthScore,
+    hasAnomaly: alerts.length > 0,
+    anomalies: hasAnomaly ? anomalies : null,
+    alerts,
+    timestamp: new Date(),
+  };
 
-    const vital = await vitalsRepository.create({
-      userId,
-      heartRate,
-      spO2,
-      bodyTemperature,
-      respiratoryRate,
-      roomHumidity,
-      ecgData,
-      hasAnomaly,
-      anomalydetails: hasAnomaly ? anomalies : null,
-    });
-    const alerts = await alertService.checkAndCreateAlerts({
-      userId,
-      readings: {
-        heartRate,
-        spO2,
-        bodyTemperature,
-        respiratoryRate,
-        roomHumidity,
-      },
-      io,
-      
-    });
+  emitVitalsUpdate(io, userId, payload);
 
-    return {
-      vital,
-      healthScore,
-      hasAnomaly: alerts.length > 0,
-      alerts,
-     
-    };
-
-    const payload = {
-      vital,
-      healthScore,
-      hasAnomaly,
-      anomalies: hasAnomaly ? anomalies : null,
+  if (hasAnomaly) {
+    emitAlert(io, userId, {
+      message: "Anomaly detected in your vitals",
+      anomalies,
       timestamp: new Date(),
-    };
-
-    emitVitalsUpdate(io, userId, payload);
-
-    if (hasAnomaly) {
-      emitAlert(io, userId, {
-        message: "Anomaly detected in your vitals",
-        anomalies,
-        timestamp: new Date(),
-      });
-    }
-
-    return payload;
+    });
   }
+
+  return payload;
+}
 
   //   Get latest vitals
 
@@ -202,13 +181,11 @@ class VitalsService {
 
     if (!vitals) return null;
 
-    const healthScore = this.calculateHealthScore({
-      heartRate: vitals.heartRate,
-      spO2: vitals.spO2,
-      bodyTemperature: vitals.bodyTemperature,
-      respiratoryRate: vitals.respiratoryRate,
-      roomHumidity: vitals.roomHumidity,
-    });
+   const healthScore = this.calculateHealthScore({
+  heartRate: vitals.heartRate,
+  spO2: vitals.spO2,
+  bodyTemperature: vitals.bodyTemperature,
+});
 
     return {
       ...vitals.dataValues,
@@ -224,34 +201,34 @@ class VitalsService {
   //  STEP 3H — Calculate averages
 
   calculateAverages(vitals) {
-    const sums = {
-      heartRate: 0,
-      spO2: 0,
-      bodyTemperature: 0,
-      respiratoryRate: 0,
-      roomHumidity: 0,
-    };
-    const counts = { ...sums };
+  const sums = {
+    heartRate: 0,
+    spO2: 0,
+    bodyTemperature: 0,
+  };
 
-    for (const vital of vitals) {
-      for (const metric of Object.keys(sums)) {
-        if (vital[metric] !== null && vital[metric] !== undefined) {
-          sums[metric] += vital[metric];
-          counts[metric]++;
-        }
+  const counts = { ...sums };
+
+  for (const vital of vitals) {
+    for (const metric of Object.keys(sums)) {
+      if (vital[metric] !== null && vital[metric] !== undefined) {
+        sums[metric] += vital[metric];
+        counts[metric]++;
       }
     }
-
-    const averages = {};
-    for (const metric of Object.keys(sums)) {
-      averages[metric] =
-        counts[metric] > 0
-          ? parseFloat((sums[metric] / counts[metric]).toFixed(1))
-          : null;
-    }
-
-    return averages;
   }
+
+  const averages = {};
+
+  for (const metric of Object.keys(sums)) {
+    averages[metric] =
+      counts[metric] > 0
+        ? parseFloat((sums[metric] / counts[metric]).toFixed(1))
+        : null;
+  }
+
+  return averages;
+}
 
   async getVitalsHistory(userId, days = 30) {
     const [dailyAverages, rawReadings] = await Promise.all([
@@ -269,15 +246,22 @@ class VitalsService {
 
     // compute overall summary from the daily averages
     const summary = {
-      avgHeartRate: this.average(dailyAverages, "avgHeartRate"),
-      avgSpO2: this.average(dailyAverages, "avgSpO2"),
-      avgBodyTemperature: this.average(dailyAverages, "avgBodyTemperature"),
-      avgRespiratoryRate: this.average(dailyAverages, "avgRespiratoryRate"),
-      avgRoomHumidity: this.average(dailyAverages, "avgRoomHumidity"),
-      totalReadings: dailyAverages.reduce((sum, d) => sum + d.totalReadings, 0),
-      totalAnomalies: dailyAverages.reduce((sum, d) => sum + d.anomalyCount, 0),
-      periodDays: days,
-    };
+  avgHeartRate: this.average(dailyAverages, "avgHeartRate"),
+  avgSpO2: this.average(dailyAverages, "avgSpO2"),
+  avgBodyTemperature: this.average(
+    dailyAverages,
+    "avgBodyTemperature"
+  ),
+  totalReadings: dailyAverages.reduce(
+    (sum, d) => sum + d.totalReadings,
+    0
+  ),
+  totalAnomalies: dailyAverages.reduce(
+    (sum, d) => sum + d.anomalyCount,
+    0
+  ),
+  periodDays: days,
+};
 
     return { dailyAverages, rawReadings, summary };
   }
@@ -327,7 +311,7 @@ class VitalsService {
     };
   }
 
-  //  ADD THIS METHOD - analyses the ECG waveform 
+  //  ADD THIS METHOD analyses the ECG waveform 
   analyseECG(ecgData) {
    
 
