@@ -293,7 +293,7 @@ class VitalSyncBLEManager {
     }
   }
 
-  // ── listen for incoming packets ───────────────────────────
+  // ── listen for incoming packets 
   private startListening(): void {
     if (!this.device) return;
 
