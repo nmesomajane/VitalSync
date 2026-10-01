@@ -438,7 +438,7 @@ const bleConnected = connectionState === "connected";
               color={Colors.temperature}
               status={getStatus(latestVitals?.bodyTemperature ?? null, 36.1, 37.5)}
             />
-            <VitalCard
+            {/* <VitalCard
               iconName="water-outline"
               iconSet="ionicons"
               label="Humidity"
@@ -446,10 +446,10 @@ const bleConnected = connectionState === "connected";
               unit="%"
               color={Colors.humidity}
               status={getStatus(latestVitals?.roomHumidity ?? null, 30, 70)}
-            />
+            /> */}
           </View>
 
-          <VitalCard
+          {/* <VitalCard
             iconName="lungs"
             iconSet="material"
             label="Respiratory Rate"
@@ -457,7 +457,7 @@ const bleConnected = connectionState === "connected";
             unit="/min"
             color={Colors.respiratory}
             status={getStatus(latestVitals?.respiratoryRate ?? null, 12, 20)}
-          />
+          /> */}
         </View>
 
         {/* Empty state — unchanged */}
