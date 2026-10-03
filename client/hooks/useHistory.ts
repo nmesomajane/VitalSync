@@ -7,7 +7,7 @@ import {
   HistorySummary,
   AlertItem,
 } from "../src/services/history";
-import useVitalsStore from "../src/store/vitalsStore";
+// import useVitalsStore from "../src/store/vitalsStore";
 
 
 export type MetricKey =
@@ -67,7 +67,7 @@ export const useHistory = (): HistoryHookResult => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { unreadAlertCount } = useVitalsStore();
+  // const { unreadAlertCount } = useVitalsStore();
 
   // fetch all data 
   const loadData = useCallback(async (showRefresh: boolean = false) => {

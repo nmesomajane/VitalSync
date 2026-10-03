@@ -30,9 +30,11 @@ const getBleManager = async () => {
 };
 
 interface MeasurementSession {
+  measurementSequence: number | null;
   vitals: VitalsPacket | null;
   classification: ClassificationPacket | null;
   ecgFragments: Map<number, any>;
+  totalECGFragments: number | null;
 }
 
 class VitalSyncBLEManager {
@@ -42,6 +44,8 @@ class VitalSyncBLEManager {
     vitals: null,
     classification: null,
     ecgFragments: new Map(),
+    measurementSequence: null,
+    totalECGFragments: null,
   };
   private offlineQueue: any[] = [];
   private scanTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -123,8 +127,7 @@ class VitalSyncBLEManager {
         if (device?.name === BLE_DEVICE_NAME) {
           console.log("BLE: found", device.name, "RSSI:", device.rssi);
           useBLEStore.getState().setRSSI(device.rssi);
-          // don't connect here — return device to the UI
-          // user confirms which device to connect to
+     
         }
       },
     );
@@ -294,57 +297,250 @@ class VitalSyncBLEManager {
   }
 
   // ── listen for incoming packets 
-  private startListening(): void {
-    if (!this.device) return;
+private startListening(): void {
+  if (!this.device) return;
 
-    console.log("BLE: subscribing to data notifications");
+  console.log("BLE: subscribing to data notifications");
 
-    this.device.monitorCharacteristicForService(
-      BLE_SERVICE_UUID,
-      BLE_CHARACTERISTICS.DATA,
-      async (error: any, characteristic: any) => {
-        if (error) {
-          if (error.errorCode === 201) return;
-          // 201 = operation cancelled (normal on disconnect)
-          console.error("BLE notification error:", error.message);
-          return;
-        }
+  this.device.monitorCharacteristicForService(
+    BLE_SERVICE_UUID,
+    BLE_CHARACTERISTICS.DATA,
+    async (error: any, characteristic: any) => {
+      if (error) {
+        if (error.errorCode === 201) return;
 
-        if (!characteristic?.value) return;
+        console.error("BLE notification error:", error.message);
+        return;
+      }
 
+      if (!characteristic?.value) return;
+
+      try {
         useBLEStore.getState().incrementPackets();
 
+        // Decode Base64 BLE notification
         const bytes = Buffer.from(characteristic.value, "base64");
         const data = Array.from(bytes) as number[];
 
-        try {
-          const packet = decodePacket(data);
-          await this.handlePacket(packet);
-        } catch (err: any) {
-          console.error("BLE decode error:", err.message);
+        if (data.length === 0) {
+          console.log("BLE: empty packet");
+          return;
         }
-      },
-    );
+
+        // VERY IMPORTANT:
+        // Show exactly what the ESP32 sent.
+        const packetType = data[0];
+
+        console.log(
+          "BLE RAW PACKET:",
+          data.map(
+            (byte) => `0x${byte.toString(16).padStart(2, "0")}`
+          ).join(" ")
+        );
+
+        console.log(
+          "BLE PACKET TYPE:",
+          `0x${packetType.toString(16).padStart(2, "0")}`
+        );
+
+        const packet = decodePacket(data);
+
+        console.log("BLE DECODED PACKET:", packet);
+
+        await this.handlePacket(packet);
+      } catch (err: any) {
+        console.error(
+          "BLE decode/processing error:",
+          err?.message || err
+        );
+      }
+    }
+  );
+}
+
+  //  route packets by type 
+  private async handlePacket(packet: any): Promise<void> {
+
+  // 0x01 — VITALS
+ 
+  if (packet.type === "vitals") {
+    console.log("=================================");
+    console.log("BLE: RECEIVED 0x01 VITALS");
+    console.log("Heart Rate:", packet.heartRate);
+    console.log("SpO2:", packet.spO2);
+    console.log("Temperature:", packet.bodyTemperature);
+    console.log("=================================");
+
+    if (this.session.vitals === null) {
+      this.session.vitals = packet;
+    } else {
+     
+      this.session.vitals = packet;
+    }
+
+    // Update dashboard immediately with raw vitals.
+    useVitalsStore.getState().setLatestVitals({
+      ...vitalsToAPIBody(
+        packet,
+        this.session.classification,
+        []
+      ),
+      id: Date.now().toString(),
+      userId: "",
+      hasAnomaly: false,
+      anomalyDetails: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any);
+
+    await this.tryCompleteMeasurement();
+
+    return;
   }
 
-  // ── route packets by type ─────────────────────────────────
-  private async handlePacket(packet: any): Promise<void> {
-    if (packet.type === "vitals") {
-      console.log("BLE: vitals —", packet.heartRate, "bpm,", packet.spO2, "%");
-      this.resetSession();
-      this.session.vitals = packet;
-    } else if (packet.type === "classification") {
-      console.log("BLE: classification —", packet.overallClassificationLabel);
-      this.session.classification = packet;
-    } else if (packet.type === "ecg_fragment") {
-      this.session.ecgFragments.set(packet.fragmentIndex, packet);
 
-      if (this.session.ecgFragments.size === ECG_TOTAL_FRAGMENTS) {
-        await this.completeMeasurement();
-      }
+  // 0x03 — CLASSIFICATION
+
+  if (packet.type === "classification") {
+    console.log("=================================");
+    console.log("BLE: RECEIVED 0x03 CLASSIFICATION");
+    console.log("Measurement:", packet.measurementSequence);
+    console.log(
+      "Overall:",
+      packet.overallClassificationLabel
+    );
+    console.log(
+      "ECG:",
+      packet.ecgClassificationLabel
+    );
+    console.log("ECG BPM:", packet.ecgBPM);
+    console.log("Confidence:", packet.confidence);
+    console.log("Flags:", packet.ecgFlags);
+    console.log("=================================");
+
+    this.session.measurementSequence =
+      packet.measurementSequence;
+
+    this.session.classification = packet;
+
+    await this.tryCompleteMeasurement();
+
+    return;
+  }
+
+
+  // 0x02 — ECG FRAGMENT
+  
+  if (packet.type === "ecg_fragment") {
+    console.log("=================================");
+    console.log("BLE: RECEIVED 0x02 ECG FRAGMENT");
+    console.log(
+      "Measurement:",
+      packet.measurementSequence
+    );
+    console.log(
+      "Fragment:",
+      `${packet.fragmentIndex + 1}/${packet.totalFragments}`
+    );
+    console.log("Samples:", packet.sampleCount);
+    console.log("=================================");
+
+   
+    if (
+      this.session.measurementSequence !== null &&
+      this.session.measurementSequence !==
+        packet.measurementSequence
+    ) {
+      console.log(
+        "BLE: new measurement sequence detected:",
+        packet.measurementSequence
+      );
+
+      this.resetSession();
+    }
+
+    this.session.measurementSequence =
+      packet.measurementSequence;
+
+    this.session.totalECGFragments =
+      packet.totalFragments;
+
+    // Prevent duplicate fragments from corrupting the count.
+    if (
+      !this.session.ecgFragments.has(packet.fragmentIndex)
+    ) {
+      this.session.ecgFragments.set(
+        packet.fragmentIndex,
+        packet
+      );
+    }
+
+    console.log(
+      "BLE: ECG fragments received:",
+      this.session.ecgFragments.size,
+      "/",
+      this.session.totalECGFragments
+    );
+
+    await this.tryCompleteMeasurement();
+
+    return;
+  }
+
+  console.warn(
+    "BLE: unknown decoded packet:",
+    packet
+  );
+}
+
+
+private async tryCompleteMeasurement(): Promise<void> {
+  const {
+    vitals,
+   
+    ecgFragments,
+    totalECGFragments,
+  } = this.session;
+
+  /*
+   * We need all ECG fragments before assembling the ECG.
+   */
+  if (
+    !totalECGFragments ||
+    ecgFragments.size < totalECGFragments
+  ) {
+    return;
+  }
+
+  /*
+   * Vitals should also be available before uploading.
+   */
+  if (!vitals) {
+    console.log(
+      "BLE: ECG complete, waiting for 0x01 vitals packet"
+    );
+    return;
+  }
+
+  /*
+   * Make sure every fragment index exists.
+   */
+  for (let i = 0; i < totalECGFragments; i++) {
+    if (!ecgFragments.has(i)) {
+      console.log(
+        "BLE: still missing ECG fragment:",
+        i
+      );
+      return;
     }
   }
 
+  console.log(
+    "BLE: ALL ECG FRAGMENTS RECEIVED"
+  );
+
+  await this.completeMeasurement();
+}
   // ── assemble and upload complete measurement ──────────────
   private async completeMeasurement(): Promise<void> {
     const { vitals, classification, ecgFragments } = this.session;
@@ -393,13 +589,17 @@ class VitalSyncBLEManager {
     this.resetSession();
   }
 
-  private resetSession(): void {
-    this.session = {
-      vitals: null,
-      classification: null,
-      ecgFragments: new Map(),
-    };
-  }
+private resetSession(): void {
+  console.log("BLE: resetting measurement session");
+
+  this.session = {
+    measurementSequence: null,
+    vitals: null,
+    classification: null,
+    ecgFragments: new Map(),
+    totalECGFragments: null,
+  };
+}
 
   // ── upload to cloud with offline queue 
   private async uploadToCloud(data: any): Promise<void> {
