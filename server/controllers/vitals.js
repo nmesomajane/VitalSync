@@ -10,26 +10,33 @@ export const recordVital = asyncHandler(async (req, res) => {
   let userId;
 
   if (req.device?.isDevice) {
-   
     userId = req.body.userId;
-  
+
     if (!userId) {
       return res.status(400).json({
-        message: "userId required in body for device posts"
+        message: "userId required in body for device posts",
       });
     }
+
     console.log("Hardware posting for patient:", userId);
   } else {
-   
     userId = req.user.id;
   }
 
+  console.log("VITAL REQUEST BODY:", req.body);
+
   const result = await vitalsService.recordVital({
     userId,
-    readings: req.body,
+    heartRate: req.body.heartRate,
+    spO2: req.body.spO2,
+    bodyTemperature: req.body.bodyTemperature,
+    ecgData: req.body.ecgData,
   });
 
-  res.status(201).json({ success: true, data: result });
+  res.status(201).json({
+    success: true,
+    data: result,
+  });
 });
 
 export const getLatestVitals = asyncHandler(async (req, res) => {

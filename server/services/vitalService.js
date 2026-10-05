@@ -118,7 +118,14 @@ class VitalsService {
 
   // Record a vital reading
 
-  async recordVital({ userId, heartRate, spO2, bodyTemperature, ecgData, io }) {
+  async recordVital({ userId, heartRate, spO2, bodyTemperature, ecgData, io }) { 
+     console.log("RECORD VITAL INPUT:", {
+    userId,
+    heartRate,
+    spO2,
+    bodyTemperature,
+    ecgDataLength: ecgData?.length,
+  });
     const readings = {
       heartRate,
       spO2,
@@ -154,15 +161,17 @@ class VitalsService {
       timestamp: new Date(),
     };
 
-    emitVitalsUpdate(io, userId, payload);
+    if (io) {
+  emitVitalsUpdate(io, userId, payload);
 
-    if (hasAnomaly) {
-      emitAlert(io, userId, {
-        message: "Anomaly detected in your vitals",
-        anomalies,
-        timestamp: new Date(),
-      });
-    }
+  if (hasAnomaly) {
+    emitAlert(io, userId, {
+      message: "Anomaly detected in your vitals",
+      anomalies,
+      timestamp: new Date(),
+    });
+  }
+}
 
     return payload;
   }
