@@ -602,16 +602,39 @@ private resetSession(): void {
 }
 
   // ── upload to cloud with offline queue 
-  private async uploadToCloud(data: any): Promise<void> {
-    try {
-      const res = await api.post("/api/v1/vitals/reading", data);
-      console.log("BLE: uploaded — health score:", res.data.data?.healthScore);
-      await this.flushOfflineQueue();
-    } catch {
-      console.log("BLE: upload failed — queuing offline");
-      await this.addToQueue(data);
+private async uploadToCloud(data: any): Promise<void> {
+  try {
+    const res = await api.post("/api/v1/vitals/reading", data);
+    console.log("NEW BACKEND HEALTH SCORE:", res.data.data?.healthScore);
+
+    const result = res.data.data;
+
+    console.log("BLE: uploaded successfully");
+    console.log("BLE: new health score:", result?.healthScore);
+
+    // Update the frontend store with the backend's calculated score.
+    const currentVitals = useVitalsStore.getState().latestVitals;
+
+    if (currentVitals) {
+      useVitalsStore.getState().setLatestVitals({
+        ...currentVitals,
+        ...data,
+        ...(result?.vital ?? {}),
+        healthScore: result?.healthScore ?? null,
+        updatedAt: new Date().toISOString(),
+      } as any);
     }
+
+    await this.flushOfflineQueue();
+  } catch (error: any) {
+    console.error(
+      "BLE upload failed:",
+      error?.response?.data ?? error?.message
+    );
+
+    await this.addToQueue(data);
   }
+}
 
   private async addToQueue(data: any): Promise<void> {
     this.offlineQueue.push({ ...data, queuedAt: Date.now() });

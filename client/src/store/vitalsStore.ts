@@ -29,10 +29,17 @@ const useVitalsStore = create<VitalsState>((set) => ({
   lastReadingAt: null,
  
 
-  setLatestVitals: (vitals: Vitals) => {
-    console.log("vitalsStore: new vitals:", vitals.heartRate);
-    set({ latestVitals: vitals });
-  },
+ 
+setLatestVitals: (vitals: Vitals) => {
+  console.log(
+    "vitalsStore: updating vitals and health score:",
+    vitals.heartRate,
+    vitals.healthScore
+  );
+
+  set({ latestVitals: vitals });
+},
+
   setConnected: (connected: boolean) => {
     console.log("vitalsStore: connected:", connected);
     set({ isConnected: connected });
